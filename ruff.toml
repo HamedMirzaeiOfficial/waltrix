@@ -16,6 +16,8 @@ ignore = [
 "tests/**" = ["S105", "S106", "S311", "B017"]
 "**/migrations/versions/*.py" = ["E501"]
 "examples/**" = ["S105", "S106"]
+# The SDK supports Python 3.11, which has no PEP 695 type-parameter syntax.
+"packages/python-sdk/**" = ["UP046", "UP047"]
 
 [lint.isort]
 known-first-party = ["waltrix_core", "waltrix_api", "waltrix"]

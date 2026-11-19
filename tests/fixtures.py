@@ -77,3 +77,26 @@ def make_org(session: Session, name: str = "Acme") -> tuple[Actor, uuid.UUID]:
 @pytest.fixture
 def owner(session: Session) -> Actor:
     return make_org(session)[0]
+
+
+# --- API fixtures (imported lazily so core tests do not need the API package) ---------
+
+
+@pytest.fixture
+def app_settings(database_url: str):  # type: ignore[no-untyped-def]
+    from waltrix_api.settings import Settings
+
+    return Settings(environment="test", database_url=database_url, log_json=False, log_level="WARNING")
+
+
+@pytest.fixture
+def client(engine: Engine, app_settings):  # type: ignore[no-untyped-def]
+    from fastapi.testclient import TestClient
+
+    from waltrix_api.main import create_app
+    from waltrix_api.ratelimit import limiter
+
+    limiter.reset()
+    app = create_app(app_settings, engine=engine)
+    with TestClient(app, base_url="http://testserver") as c:
+        yield c

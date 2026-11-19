@@ -2,28 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
-
-from waltrix_api.main import create_app
-from waltrix_api.ratelimit import limiter
-from waltrix_api.settings import Settings
-
-
-@pytest.fixture
-def app_settings(database_url: str) -> Settings:
-    return Settings(environment="test", database_url=database_url, log_json=False, log_level="WARNING")
-
-
-@pytest.fixture
-def client(engine: Engine, app_settings: Settings) -> Iterator[TestClient]:
-    limiter.reset()
-    app = create_app(app_settings, engine=engine)
-    with TestClient(app, base_url="http://testserver") as c:
-        yield c
 
 
 class Dashboard:
