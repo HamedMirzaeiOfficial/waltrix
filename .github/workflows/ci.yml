@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  WALTRIX_TEST_DATABASE_URL: postgresql://waltrix:waltrix@localhost:5432/waltrix_test
+
+jobs:
+  python:
+    name: Python (core, API, SDK) on PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ["16", "17"]
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}-alpine
+        env: { POSTGRES_USER: waltrix, POSTGRES_PASSWORD: waltrix, POSTGRES_DB: waltrix_test }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U waltrix" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: pip install -e packages/ledger-core -e "apps/api[dev]" -e packages/python-sdk
+      - run: ruff check . && ruff format --check .
+      - run: mypy packages/ledger-core/src apps/api/src --ignore-missing-imports
+      - run: mypy packages/python-sdk/src --strict
+      - run: pytest -q
+
+  node:
+    name: TypeScript SDK and dashboard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: npm ci
+      - run: npm run build -w @waltrix/sdk
+      - run: npm run lint && npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build -w @waltrix/web
+
+  e2e:
+    name: Playwright journeys
+    runs-on: ubuntu-latest
+    needs: [python, node]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: { POSTGRES_USER: waltrix, POSTGRES_PASSWORD: waltrix, POSTGRES_DB: waltrix_e2e }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U waltrix" --health-interval 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm }
+      - run: pip install -e packages/ledger-core -e apps/api
+      - run: npm ci && npm run build -w @waltrix/sdk && npm run build -w @waltrix/web
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/web
+      - run: npx playwright test
+        working-directory: apps/web
+        env:
+          PYTHON: python
+          WALTRIX_E2E_DATABASE_URL: postgresql://waltrix:waltrix@localhost:5432/waltrix_e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-report, path: apps/web/test-results }
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t waltrix:ci .

@@ -1,0 +1,42 @@
+# Local, reproducible stack. Synthetic data only; never point this at real money.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: waltrix
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-waltrix-local-only}
+      POSTGRES_DB: waltrix
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U waltrix"]
+      interval: 5s
+      retries: 20
+
+  migrate:
+    build: .
+    command: ["waltrix", "migrate"]
+    environment: &env
+      WALTRIX_DATABASE_URL: postgresql://waltrix:${POSTGRES_PASSWORD:-waltrix-local-only}@db:5432/waltrix
+      WALTRIX_ENVIRONMENT: ${WALTRIX_ENVIRONMENT:-development}
+      WALTRIX_COOKIE_SECURE: ${WALTRIX_COOKIE_SECURE:-false}
+    depends_on:
+      db: { condition: service_healthy }
+
+  api:
+    build: .
+    environment: *env
+    ports: ["127.0.0.1:8080:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  # Background maintenance. These commands are idempotent and safe to run concurrently
+  # (hold expiry uses FOR UPDATE SKIP LOCKED), so a plain loop is enough.
+  worker:
+    build: .
+    environment: *env
+    command: ["sh", "-c", "while true; do waltrix expire-holds; waltrix purge-idempotency; sleep 60; done"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+volumes:
+  pgdata:
