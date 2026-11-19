@@ -1,0 +1,9 @@
+dist
+node_modules
+.venv
+.local
+coverage
+playwright-report
+test-results
+package-lock.json
+*.md

@@ -101,7 +101,8 @@ export class Waltrix {
 
   constructor(private readonly options: WaltrixOptions = {}) {
     if (options.apiKey && options.session) throw new TypeError("use either apiKey or session, not both");
-    if (options.apiKey && !options.apiKey.startsWith("wtx_key_")) throw new TypeError("apiKey must start with wtx_key_");
+    if (options.apiKey && !options.apiKey.startsWith("wtx_key_"))
+      throw new TypeError("apiKey must start with wtx_key_");
     this.baseUrl = (options.baseUrl ?? "").replace(/\/$/, "") + "/api/v1";
     this.fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
     this.timeoutMs = options.timeoutMs ?? 15_000;
@@ -134,7 +135,10 @@ export class Waltrix {
   private async retryable(res: Response): Promise<boolean> {
     if (RETRY_STATUSES.has(res.status)) return true;
     if (res.status === 409) {
-      const body = (await res.clone().json().catch(() => null)) as { error?: { code?: string } } | null;
+      const body = (await res
+        .clone()
+        .json()
+        .catch(() => null)) as { error?: { code?: string } } | null;
       return body?.error?.code === "concurrent_request";
     }
     return false;
@@ -153,8 +157,10 @@ export class Waltrix {
     let lastResponse: Response | null = null;
     for (let attempt = 0; attempt < attempts; attempt++) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(new DOMException("timeout", "TimeoutError")),
-        opts.timeoutMs ?? this.timeoutMs);
+      const timeout = setTimeout(
+        () => controller.abort(new DOMException("timeout", "TimeoutError")),
+        opts.timeoutMs ?? this.timeoutMs,
+      );
       const onAbort = () => controller.abort(opts.signal?.reason);
       opts.signal?.addEventListener("abort", onAbort, { once: true });
       try {
@@ -175,8 +181,9 @@ export class Waltrix {
           // The caller cancelled. For reads that is simply a cancellation; for writes we
           // cannot know whether the server already applied the request.
           if (spec.method === "GET") throw opts.signal.reason;
-          throw new WaltrixUnknownOutcomeError("request aborted; outcome unknown", spec.idempotencyKey ?? null,
-            true, { cause: err });
+          throw new WaltrixUnknownOutcomeError("request aborted; outcome unknown", spec.idempotencyKey ?? null, true, {
+            cause: err,
+          });
         }
         lastError = err;
         lastResponse = null;
@@ -229,8 +236,7 @@ export class Waltrix {
   };
 
   readonly members = {
-    list: (o?: RequestOptions) =>
-      this.send<T.Member[]>({ method: "GET", path: "/organizations/current/members" }, o),
+    list: (o?: RequestOptions) => this.send<T.Member[]>({ method: "GET", path: "/organizations/current/members" }, o),
     add: (input: { email: string; role: T.Role }, o?: RequestOptions) =>
       this.send<T.Member>({ method: "POST", path: "/organizations/current/members", body: input }, o),
     updateRole: (id: string, role: T.Role, o?: RequestOptions) =>
@@ -241,18 +247,24 @@ export class Waltrix {
 
   readonly apiKeys = {
     list: (o?: RequestOptions) => this.send<T.ApiKey[]>({ method: "GET", path: "/api-keys" }, o),
-    create: (input: { name: string; role: "finance_operator" | "auditor" | "viewer"; expires_in_days?: number },
-      o?: RequestOptions) => this.send<T.ApiKeyCreated>({ method: "POST", path: "/api-keys", body: input }, o),
+    create: (
+      input: { name: string; role: "finance_operator" | "auditor" | "viewer"; expires_in_days?: number },
+      o?: RequestOptions,
+    ) => this.send<T.ApiKeyCreated>({ method: "POST", path: "/api-keys", body: input }, o),
     revoke: (id: string, o?: RequestOptions) =>
       this.send<T.ApiKey>({ method: "POST", path: `/api-keys/${seg(id)}/revoke`, body: {} }, o),
     rotate: (id: string, graceHours = 0, o?: RequestOptions) =>
       this.send<T.ApiKeyCreated>(
-        { method: "POST", path: `/api-keys/${seg(id)}/rotate`, body: { grace_hours: graceHours } }, o),
+        { method: "POST", path: `/api-keys/${seg(id)}/rotate`, body: { grace_hours: graceHours } },
+        o,
+      ),
   };
 
   readonly wallets = {
-    list: (params: T.ListParams & { status?: T.WalletStatus; currency?: string; search?: string } = {},
-      o?: RequestOptions) => this.send<T.Page<T.Wallet>>({ method: "GET", path: "/wallets", query: params }, o),
+    list: (
+      params: T.ListParams & { status?: T.WalletStatus; currency?: string; search?: string } = {},
+      o?: RequestOptions,
+    ) => this.send<T.Page<T.Wallet>>({ method: "GET", path: "/wallets", query: params }, o),
     get: (id: string, o?: RequestOptions) => this.send<T.Wallet>({ method: "GET", path: `/wallets/${seg(id)}` }, o),
     balance: (id: string, o?: RequestOptions) =>
       this.send<T.Balance>({ method: "GET", path: `/wallets/${seg(id)}/balance` }, o),
@@ -316,8 +328,10 @@ export class Waltrix {
   };
 
   readonly accounts = {
-    list: (params: T.ListParams & { type?: T.AccountType; currency?: string; include_wallets?: boolean } = {},
-      o?: RequestOptions) => this.send<T.Page<T.Account>>({ method: "GET", path: "/accounts", query: params }, o),
+    list: (
+      params: T.ListParams & { type?: T.AccountType; currency?: string; include_wallets?: boolean } = {},
+      o?: RequestOptions,
+    ) => this.send<T.Page<T.Account>>({ method: "GET", path: "/accounts", query: params }, o),
     get: (id: string, o?: RequestOptions) => this.send<T.Account>({ method: "GET", path: `/accounts/${seg(id)}` }, o),
     create: (input: { code: string; name: string; type: T.AccountType; currency: string }, o?: RequestOptions) =>
       this.send<T.Account>({ method: "POST", path: "/accounts", body: input }, o),
@@ -326,9 +340,10 @@ export class Waltrix {
   };
 
   readonly journalEntries = {
-    list: (params: T.ListParams & { kind?: string; phase?: "pending" | "posted"; account_id?: string } = {},
-      o?: RequestOptions) =>
-      this.send<T.Page<T.JournalEntry>>({ method: "GET", path: "/journal-entries", query: params }, o),
+    list: (
+      params: T.ListParams & { kind?: string; phase?: "pending" | "posted"; account_id?: string } = {},
+      o?: RequestOptions,
+    ) => this.send<T.Page<T.JournalEntry>>({ method: "GET", path: "/journal-entries", query: params }, o),
     get: (id: string, o?: RequestOptions) =>
       this.send<T.JournalEntry>({ method: "GET", path: `/journal-entries/${seg(id)}` }, o),
     createManual: (input: T.ManualEntryInput, o?: MutationOptions) =>
@@ -345,12 +360,15 @@ export class Waltrix {
   };
 
   readonly auditEvents = {
-    list: (params: T.ListParams & { action?: string; target_id?: string; actor_id?: string } = {},
-      o?: RequestOptions) => this.send<T.Page<T.AuditEvent>>({ method: "GET", path: "/audit-events", query: params }, o),
+    list: (
+      params: T.ListParams & { action?: string; target_id?: string; actor_id?: string } = {},
+      o?: RequestOptions,
+    ) => this.send<T.Page<T.AuditEvent>>({ method: "GET", path: "/audit-events", query: params }, o),
   };
 
   readonly overview = {
-    get: (days = 30, o?: RequestOptions) => this.send<T.Overview>({ method: "GET", path: "/overview", query: { days } }, o),
+    get: (days = 30, o?: RequestOptions) =>
+      this.send<T.Overview>({ method: "GET", path: "/overview", query: { days } }, o),
   };
 
   readonly currencies = {

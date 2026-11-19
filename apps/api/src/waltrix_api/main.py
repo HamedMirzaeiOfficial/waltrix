@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import Engine
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from waltrix_core import __version__
 from waltrix_core.db import make_engine, make_session_factory
@@ -69,4 +74,23 @@ def create_app(settings: Settings | None = None, engine: Engine | None = None) -
     ):
         app.include_router(r, prefix="/api/v1")
     app.include_router(operations.health)
+    if settings.web_dist:
+        _mount_spa(app, Path(settings.web_dist))
     return app
+
+
+def _mount_spa(app: FastAPI, dist: Path) -> None:
+    """Serve the built dashboard: static assets plus index.html for client-side routes."""
+    index = dist / "index.html"
+    if not index.is_file():
+        raise RuntimeError(f"WALTRIX_WEB_DIST={dist} has no index.html; run `npm run build -w @waltrix/web`")
+    app.mount("/assets", StaticFiles(directory=dist / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def spa(path: str) -> FileResponse:
+        if path.startswith("api/"):
+            raise StarletteHTTPException(404)
+        candidate = (dist / path).resolve()
+        if path and candidate.is_file() and candidate.is_relative_to(dist.resolve()):
+            return FileResponse(candidate)
+        return FileResponse(index, headers={"Cache-Control": "no-cache"})

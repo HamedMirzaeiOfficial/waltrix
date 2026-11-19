@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # Set True behind HTTPS. Forced on in production.
     cookie_secure: bool = False
     session_cookie_name: str = "waltrix_session"
+    # Must match the public path of the API (e.g. "/shared/ide/proxy/4820/api" behind a prefix proxy).
+    session_cookie_path: str = "/api"
+    # Optional: serve the built dashboard (apps/web/dist) from the API process (single origin).
+    web_dist: str | None = None
     # Requests per minute per credential (or per IP when unauthenticated).
     rate_limit_per_minute: int = 600
     login_rate_limit_per_minute: int = 10

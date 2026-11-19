@@ -29,7 +29,10 @@ describe("retries and idempotency", () => {
       return json(201, TX);
     });
     const tx = await client(f as typeof fetch).transfers.create({
-      source_wallet_id: "a", destination_wallet_id: "b", amount: 100, currency: "USD",
+      source_wallet_id: "a",
+      destination_wallet_id: "b",
+      amount: 100,
+      currency: "USD",
     });
     expect(tx.id).toBe("t1");
     expect(keys).toHaveLength(3);
@@ -51,7 +54,9 @@ describe("retries and idempotency", () => {
   });
 
   it("throws UnknownOutcome with the key when a mutation never gets an answer", async () => {
-    const f = vi.fn(async () => { throw new TypeError("network down"); });
+    const f = vi.fn(async () => {
+      throw new TypeError("network down");
+    });
     const err = await client(f as typeof fetch, { maxRetries: 2 })
       .holds.release("h1", { idempotencyKey: "k-9" })
       .catch((e: unknown) => e);
@@ -62,29 +67,38 @@ describe("retries and idempotency", () => {
 
   it("treats a caller abort of a mutation as unknown outcome, not failure", async () => {
     const controller = new AbortController();
-    const f = vi.fn((_u: string | URL | Request, init?: RequestInit) =>
-      new Promise<Response>((_, reject) => {
-        init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
-        controller.abort();
-      }));
+    const f = vi.fn(
+      (_u: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_, reject) => {
+          init?.signal?.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+          controller.abort();
+        }),
+    );
     const err = await client(f as typeof fetch)
-      .transfers.create({ source_wallet_id: "a", destination_wallet_id: "b", amount: 1, currency: "USD" },
-        { signal: controller.signal })
+      .transfers.create(
+        { source_wallet_id: "a", destination_wallet_id: "b", amount: 1, currency: "USD" },
+        { signal: controller.signal },
+      )
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(WaltrixUnknownOutcomeError);
     expect((err as WaltrixUnknownOutcomeError).aborted).toBe(true);
   });
 
   it("never retries a POST without an idempotency key", async () => {
-    const f = vi.fn(async () => { throw new TypeError("network"); });
+    const f = vi.fn(async () => {
+      throw new TypeError("network");
+    });
     await expect(client(f as typeof fetch).reconciliation.run()).rejects.toBeInstanceOf(WaltrixUnknownOutcomeError);
     expect(f).toHaveBeenCalledTimes(1);
   });
 
   it("retries GETs and then raises a network error", async () => {
-    const f = vi.fn(async () => { throw new TypeError("network"); });
+    const f = vi.fn(async () => {
+      throw new TypeError("network");
+    });
     await expect(client(f as typeof fetch, { maxRetries: 1 }).wallets.get("w")).rejects.toBeInstanceOf(
-      WaltrixNetworkError);
+      WaltrixNetworkError,
+    );
     expect(f).toHaveBeenCalledTimes(2);
   });
 
@@ -96,7 +110,9 @@ describe("retries and idempotency", () => {
       json(201, TX),
     ];
     const c = client((async () => responses.shift()!) as typeof fetch);
-    c.sleep = async (ms) => { delays.push(ms); };
+    c.sleep = async (ms) => {
+      delays.push(ms);
+    };
     await c.transfers.create({ source_wallet_id: "a", destination_wallet_id: "b", amount: 1, currency: "USD" });
     expect(delays[1]).toBe(2000);
   });
@@ -104,9 +120,10 @@ describe("retries and idempotency", () => {
 
 describe("errors and validation", () => {
   it("maps business failures with the failed transaction id", async () => {
-    const f = async () => json(422, {
-      error: { code: "insufficient_funds", message: "no", details: { transaction_id: "t-f" }, correlation_id: "c1" },
-    });
+    const f = async () =>
+      json(422, {
+        error: { code: "insufficient_funds", message: "no", details: { transaction_id: "t-f" }, correlation_id: "c1" },
+      });
     const err = (await client(f as typeof fetch)
       .transfers.create({ source_wallet_id: "a", destination_wallet_id: "b", amount: 1, currency: "USD" })
       .catch((e: unknown) => e)) as WaltrixApiError;
@@ -118,14 +135,22 @@ describe("errors and validation", () => {
 
   it("validation errors are not business failures", async () => {
     const f = async () => json(422, { error: { code: "validation_failed", message: "bad" } });
-    const err = (await client(f as typeof fetch).wallets.list().catch((e: unknown) => e)) as WaltrixApiError;
+    const err = (await client(f as typeof fetch)
+      .wallets.list()
+      .catch((e: unknown) => e)) as WaltrixApiError;
     expect(err.isBusinessFailure).toBe(false);
   });
 
   it.each([1.5, 0, -1, Number.MAX_SAFE_INTEGER + 1, Number.NaN])("rejects amount %s before sending", (amount) => {
     const f = vi.fn();
-    expect(() => client(f as unknown as typeof fetch).transfers.create({
-      source_wallet_id: "a", destination_wallet_id: "b", amount, currency: "USD" })).toThrow(TypeError);
+    expect(() =>
+      client(f as unknown as typeof fetch).transfers.create({
+        source_wallet_id: "a",
+        destination_wallet_id: "b",
+        amount,
+        currency: "USD",
+      }),
+    ).toThrow(TypeError);
     expect(f).not.toHaveBeenCalled();
   });
 
@@ -161,16 +186,26 @@ describe("pagination and money", () => {
   });
 
   it.each([
-    ["12.5", "USD", 1250], ["0.01", "USD", 1], ["1,234.56", "USD", 123456], ["500", "JPY", 500],
-    ["0.1", "USD", 10], ["9007199254740.99", "USD", 900719925474099],
+    ["12.5", "USD", 1250],
+    ["0.01", "USD", 1],
+    ["1,234.56", "USD", 123456],
+    ["500", "JPY", 500],
+    ["0.1", "USD", 10],
+    ["9007199254740.99", "USD", 900719925474099],
   ])("parseMoney(%s %s) = %s", (input, cur, expected) => {
     expect(parseMoney(input, cur)).toBe(expected);
   });
 
-  it.each([["1.234", "USD"], ["-5", "USD"], ["1.5", "JPY"], ["abc", "USD"], ["", "USD"], ["1e5", "USD"]])(
-    "parseMoney rejects %s %s", (input, cur) => {
-      expect(parseMoney(input, cur)).toBeNull();
-    });
+  it.each([
+    ["1.234", "USD"],
+    ["-5", "USD"],
+    ["1.5", "JPY"],
+    ["abc", "USD"],
+    ["", "USD"],
+    ["1e5", "USD"],
+  ])("parseMoney rejects %s %s", (input, cur) => {
+    expect(parseMoney(input, cur)).toBeNull();
+  });
 
   it("formats from integers without float drift", () => {
     expect(formatMoney(123456, "USD")).toBe("$1,234.56");

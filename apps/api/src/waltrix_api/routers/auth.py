@@ -24,7 +24,7 @@ def _set_cookie(response: Response, settings: Settings, token: str) -> None:
         httponly=True,
         secure=settings.cookie_secure or settings.is_production,
         samesite="strict",
-        path="/api",
+        path=settings.session_cookie_path,
     )
 
 
@@ -77,7 +77,7 @@ def logout(
     token = request.cookies.get(settings.session_cookie_name)
     if token:
         identity.logout(db, token)
-    response.delete_cookie(settings.session_cookie_name, path="/api")
+    response.delete_cookie(settings.session_cookie_name, path=settings.session_cookie_path)
     response.status_code = 204
     return response
 

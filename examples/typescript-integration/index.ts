@@ -14,8 +14,11 @@ async function payout(walletId: string, amount: number, payoutId: string) {
   // The payout id from our own database is the idempotency key: safe across retries and restarts.
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      return await client.wallets.debit(walletId, { amount, currency: "USD", reference: payoutId },
-        { idempotencyKey: `payout:${payoutId}` });
+      return await client.wallets.debit(
+        walletId,
+        { amount, currency: "USD", reference: payoutId },
+        { idempotencyKey: `payout:${payoutId}` },
+      );
     } catch (err) {
       if (err instanceof WaltrixUnknownOutcomeError) continue; // same key -> cannot double pay
       throw err;
@@ -25,9 +28,16 @@ async function payout(walletId: string, amount: number, payoutId: string) {
 }
 
 const run = crypto.randomUUID().slice(0, 8);
-const wallet = await client.wallets.create({ name: "Example Creator", owner_reference: `creator_${run}`, currency: "USD" });
-await client.wallets.credit(wallet.id, { amount: 25_00, currency: "USD", description: "Simulated earnings" },
-  { idempotencyKey: `earnings:${run}` });
+const wallet = await client.wallets.create({
+  name: "Example Creator",
+  owner_reference: `creator_${run}`,
+  currency: "USD",
+});
+await client.wallets.credit(
+  wallet.id,
+  { amount: 25_00, currency: "USD", description: "Simulated earnings" },
+  { idempotencyKey: `earnings:${run}` },
+);
 
 const tx = await payout(wallet.id, 10_00, `po_${run}`);
 console.log("payout", tx.id, tx.status, formatMoney(tx.amount, tx.currency));
