@@ -1,5 +1,7 @@
 # فصل ۱۱ — تست
 
+[English](en/11-testing.md) · **فارسی**
+
 فایل‌های این فصل: `tests/fixtures.py`، `tests/unit/`، `tests/integration/`، `tests/concurrency/`، `apps/api/tests/`، `packages/python-sdk/tests/`، `apps/web/src/**/*.test.tsx`، `apps/web/e2e/`
 
 ## ۱. هرم تست این پروژه
@@ -12,8 +14,8 @@
 | property stateful | Hypothesis `RuleBasedStateMachine` | ۱ (۱۲ نمونه × ۲۰ گام) | رفتار دفتر = یک مدل ساده |
 | HTTP | FastAPI TestClient | ۳۱ | احراز هویت، tenant، اعتبارسنجی، صفحه‌بندی |
 | SDK | httpx MockTransport + سرور واقعی | ۱۸ | retry، کلید، نگاشت خطا |
-| فرانت | Vitest + Testing Library | ۱۳ + ۳۰ (SDK) | state machine انتقال، صفحه‌ی انتقال |
-| E2E | Playwright | ۵ | مسیرهای حیاتی کاربر، دسکتاپ و موبایل |
+| فرانت | Vitest + Testing Library | ۲۴ + ۳۰ (SDK) | state machine انتقال، صفحه‌ی انتقال، i18n و قفل زبان |
+| E2E | Playwright | ۷ | مسیرهای حیاتی کاربر، دسکتاپ و موبایل، فارسی، کاربر برگشتی |
 
 ## ۲. چرا PostgreSQL واقعی و نه SQLite
 
@@ -61,11 +63,11 @@ def test_property_split_credits_balance(self, debits, n_credit): ...
 
 ## ۷. Playwright
 
-`playwright.config.ts` قبل از تست‌ها یک دیتابیس جدا (`waltrix_e2e`) را migrate می‌کند و API را با build داشبورد روی پورت ۴۸۲۳ بالا می‌آورد. پنج مسیر: شارژ و انتقال با بازبینی تا دیدن سند متوازن، شکست قطعی اضافه‌برداشت (با دور زدن UI)، reconciliation و audit، نمایش یک‌باره‌ی راز API key، و ناوبری موبایل روی Pixel 7.
+`playwright.config.ts` قبل از تست‌ها یک دیتابیس جدا (`waltrix_e2e`) را migrate می‌کند و API را با build داشبورد روی پورت ۴۸۲۳ بالا می‌آورد. هفت مسیر: شارژ و انتقال با بازبینی تا دیدن سند متوازن، شکست قطعی اضافه‌برداشت (با دور زدن UI)، reconciliation و audit، نمایش یک‌باره‌ی راز API key، ناوبری موبایل روی Pixel 7، یک انتقال کامل به فارسی با ارقام فارسی (`i18n.spec.ts`)، و ورود دوباره و انتخاب سازمان موجود (`session.spec.ts`، فصل ۱۴ داستان ۹).
 
 ## ۸. نتایج واقعی
 
-نتایج آخرین اجرا در README آمده (۱۵۶ پایتون در ۲۸.۶ ثانیه، ۳۰ SDK، ۱۳ داشبورد، ۵ Playwright). قاعده: هیچ عددی که اجرا نشده نوشته نمی‌شود.
+نتایج آخرین اجرا در README آمده (۱۵۶ پایتون، ۳۰ SDK، ۲۴ داشبورد، ۷ Playwright). قاعده: هیچ عددی که اجرا نشده نوشته نمی‌شود.
 
 ## تمرین‌ها
 

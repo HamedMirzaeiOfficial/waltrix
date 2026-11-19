@@ -1,5 +1,7 @@
 # Design system
 
+**English** · [فارسی](fa/design-system.md)
+
 The dashboard aims for a calm, dense, trustworthy financial tool: dark-first, with a light theme of equal
 quality, indigo used sparingly for intent, and numbers that are easy to scan.
 
@@ -42,11 +44,29 @@ definitions; rows are focusable and activate with Enter/Space.
 ## Money UX rules
 
 1. Parse user input as a decimal string into minor units; reject more decimals than the currency allows.
+   Persian digits are converted to ASCII first.
 2. Show a review step with names, owner references and short ids for both sides before any transfer.
 3. Disable and guard submission while pending; one idempotency key per attempt, reused for verification.
 4. Four visibly different outcomes: confirmed success (green), confirmed failure (red, "no money moved"),
    not accepted (amber, "nothing executed"), unknown (amber, verify). Never optimistic success.
 5. "Simulated funding" is labelled wherever deposits and withdrawals appear.
+
+## Two languages and right-to-left
+
+The dashboard runs in English and Persian (see [ADR 0006](architecture/decisions/0006-bilingual-dashboard.md)
+and chapter 15 of the learning guide). Rules for components:
+
+* Never hard-code UI text: wrap it in `t("…")`, or `msg("…")` for constant tables, and add the Persian
+  entry to `src/locales/fa.json`. `npm run i18n:check -w @waltrix/web` fails otherwise.
+* Use logical spacing and alignment (`ps-*`, `pe-*`, `ms-*`, `start-*`, `end-*`, `text-start`,
+  `text-end`, `border-e`), never `left`/`right` variants, except for centred overlays.
+* Mirror directional icons (arrows, chevrons) with `rtl:-scale-x-100`; leave symmetric icons alone.
+* Amounts go through `formatMoney`/`<Money>`, which isolate them as left-to-right text so a sign never
+  jumps to the wrong side. Ids and codes use `font-mono` (isolated in RTL). User-entered names get
+  `dir="auto"`; emails `dir="ltr"`.
+* Persian uses Vazirmatn Variable (Inter has no Persian glyphs); digits and dates come from `Intl` with
+  `fa-IR`, which also gives the Solar Hijri calendar.
+* Charts keep a left-to-right time axis in both languages.
 
 ## Motion and accessibility
 

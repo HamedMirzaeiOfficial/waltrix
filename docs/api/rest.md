@@ -1,5 +1,7 @@
 # REST API v1
 
+**English** · [فارسی](../fa/api/rest.md)
+
 Base path `/api/v1`. Interactive docs at `/api/docs`, machine-readable schema at `/api/v1/openapi.json`.
 
 ## Conventions
@@ -14,6 +16,8 @@ Base path `/api/v1`. Interactive docs at `/api/docs`, machine-readable schema at
   every response, log line, audit event, transaction and journal entry.
 * **Pagination.** Cursor based: `?limit=1..100&cursor=...` →
   `{"data": [...], "next_cursor": "...", "has_more": true}`. Stable while rows are being inserted.
+* **Language.** Responses and messages are English. Clients localise by the stable error `code`, not the
+  `message` text; the dashboard does exactly this for Persian.
 * **Errors.**
 
 ```json

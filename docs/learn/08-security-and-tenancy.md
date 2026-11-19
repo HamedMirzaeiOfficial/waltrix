@@ -1,6 +1,8 @@
 # فصل ۸ — امنیت و چندمستأجری
 
-فایل‌های این فصل: `apps/api/src/waltrix_api/deps.py`، `services/identity.py`، `permissions.py`، `services/queries.py`، `apps/api/tests/test_api.py`، [security.md](../security.md)
+[English](en/08-security-and-tenancy.md) · **فارسی**
+
+فایل‌های این فصل: `apps/api/src/waltrix_api/deps.py`، `services/identity.py`، `permissions.py`، `services/queries.py`، `apps/api/tests/test_api.py`، [security.md](../fa/security.md)
 
 ## ۱. قانون طلایی: به هویتی که کلاینت می‌گوید اعتماد نکن
 

@@ -1,5 +1,7 @@
 # Double-entry model
 
+**English** · [فارسی](../fa/financial-model/double-entry.md)
+
 ## Entities
 
 ```mermaid

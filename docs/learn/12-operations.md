@@ -1,6 +1,8 @@
 # فصل ۱۲ — عملیات و استقرار
 
-فایل‌های این فصل: `apps/api/src/waltrix_api/{observability,ratelimit,cli}.py`، `routers/operations.py` (health)، `Dockerfile`، `docker-compose.yml`، `.github/workflows/ci.yml`، [deployment.md](../deployment.md)
+[English](en/12-operations.md) · **فارسی**
+
+فایل‌های این فصل: `apps/api/src/waltrix_api/{observability,ratelimit,cli}.py`، `routers/operations.py` (health)، `Dockerfile`، `docker-compose.yml`، `.github/workflows/ci.yml`، [deployment.md](../fa/deployment.md)
 
 ## ۱. correlation id: نخ تسبیح
 
@@ -68,7 +70,7 @@ label متریک `route` الگوی مسیر است (`/api/v1/wallets/{wallet_id
 
 `Dockerfile` چندمرحله‌ای است: مرحله‌ی Node داشبورد را build می‌کند، مرحله‌ی Python فقط نتیجه را کپی می‌کند. کاربر غیر root و `HEALTHCHECK` روی `/readyz`. صادقانه: Docker در محیط توسعه‌ی این پروژه موجود نبود و این فایل‌ها فقط در CI build می‌شوند.
 
-CI چهار job دارد: پایتون روی PostgreSQL 16 و 17 (ماتریس)، Node (lint، typecheck، تست، build)، Playwright، و build تصویر Docker.
+CI چهار job دارد: پایتون روی PostgreSQL 16 و 17 (ماتریس)، Node (lint، typecheck، بررسی ترجمه، تست، build)، Playwright، و build تصویر Docker.
 
 ## ۸. backup، RPO و RTO
 

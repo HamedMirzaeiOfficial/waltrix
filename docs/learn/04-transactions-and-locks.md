@@ -1,6 +1,8 @@
 # فصل ۴ — تراکنش، قفل و همزمانی
 
-فایل‌های این فصل: `services/runner.py`، `services/ledger.py::lock_accounts`، `services/operations.py`، `tests/concurrency/test_concurrency.py`، [ADR 0003](../architecture/decisions/0003-locking-strategy.md)
+[English](en/04-transactions-and-locks.md) · **فارسی**
+
+فایل‌های این فصل: `services/runner.py`، `services/ledger.py::lock_accounts`، `services/operations.py`، `tests/concurrency/test_concurrency.py`، [ADR 0003](../fa/architecture/decisions/0003-locking-strategy.md)
 
 این مهم‌ترین فصل پروژه است. سخت‌ترین باگ‌های سیستم‌های مالی از همزمانی می‌آیند: دو درخواست در یک لحظه.
 

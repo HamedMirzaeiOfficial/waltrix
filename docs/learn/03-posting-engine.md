@@ -1,5 +1,7 @@
 # فصل ۳ — موتور ثبت و قیدهای دیتابیس
 
+[English](en/03-posting-engine.md) · **فارسی**
+
 فایل‌های این فصل: `services/ledger.py`، `db/models.py`، `migrations/versions/0001_initial_schema.py`، `tests/integration/test_ledger_invariants.py`
 
 ## ۱. دفاع لایه‌لایه
@@ -71,7 +73,7 @@ CREATE TRIGGER postings_append_only
 
 `UPDATE postings SET amount = amount + 1` خطا می‌دهد: «postings is append-only». اصلاح فقط با سند معکوس (فصل ۶) ممکن است. همین برای `journal_entries` و `audit_events`.
 
-محدودیت صادقانه: superuser دیتابیس می‌تواند trigger را غیرفعال کند. برای همین در [security.md](../security.md) توصیه شده API با نقشی اجرا شود که مالک جدول‌ها نیست.
+محدودیت صادقانه: superuser دیتابیس می‌تواند trigger را غیرفعال کند. برای همین در [security.md](../fa/security.md) توصیه شده API با نقشی اجرا شود که مالک جدول‌ها نیست.
 
 ## ۵. trigger تأخیری: سند نامتوازن هرگز commit نمی‌شود
 

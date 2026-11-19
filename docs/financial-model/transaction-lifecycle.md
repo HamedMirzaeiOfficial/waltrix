@@ -1,5 +1,7 @@
 # Lifecycles
 
+**English** · [فارسی](../fa/financial-model/transaction-lifecycle.md)
+
 Transactions and holds have different lifecycles. They are not forced into one shared state machine.
 Every status change goes through `state_machine.check_*_transition`; an illegal move raises
 `invalid_state_transition` (409).
@@ -59,3 +61,6 @@ corrections stay possible; they still respect overdraft rules.
 | 422 `validation_failed`, 401/403/404 | request rejected before execution | no | fix the request |
 | 409 `idempotency_key_reused` | key used with different parameters | no | use a new key |
 | 409 `concurrent_request`, 429, 5xx, timeout | **unknown or not executed** | maybe | yes, safely |
+
+The dashboard turns this table into four visible states: success (green), failure (red, "no money
+moved"), not accepted (amber, "nothing executed") and unknown (amber, with automatic verification).

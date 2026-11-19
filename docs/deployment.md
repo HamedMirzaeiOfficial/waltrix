@@ -1,5 +1,7 @@
 # Deployment and operations
 
+**English** · [فارسی](fa/deployment.md)
+
 ## Shape
 
 One container image (`Dockerfile`): the FastAPI app serving the API and the built dashboard from the same

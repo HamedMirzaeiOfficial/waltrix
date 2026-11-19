@@ -1,6 +1,8 @@
 # فصل ۹ — طراحی API و SDK
 
-فایل‌های این فصل: `apps/api/src/waltrix_api/{schemas,presenters,errors}.py`، `services/queries.py::paginate`، `packages/python-sdk/src/waltrix/`، `packages/typescript-sdk/src/`، [rest.md](../api/rest.md)
+[English](en/09-api-and-sdks.md) · **فارسی**
+
+فایل‌های این فصل: `apps/api/src/waltrix_api/{schemas,presenters,errors}.py`، `services/queries.py::paginate`، `packages/python-sdk/src/waltrix/`، `packages/typescript-sdk/src/`، [rest.md](../fa/api/rest.md)
 
 ## ۱. شکل یکسان خطا
 

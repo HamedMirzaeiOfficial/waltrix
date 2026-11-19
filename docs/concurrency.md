@@ -1,5 +1,7 @@
 # Concurrency, idempotency and failure recovery
 
+**English** · [فارسی](fa/concurrency.md)
+
 ## The transaction boundary
 
 Every financial mutation is one call to `runner.run_operation`, which owns one PostgreSQL transaction:
@@ -74,7 +76,8 @@ outcome by retrying.
   backoff and full jitter, honoring `Retry-After`.
 * If a mutation never gets a definitive answer, raise `UnknownOutcomeError` / `WaltrixUnknownOutcomeError`
   carrying the key. The dashboard shows "Result unknown" and verifies by re-sending with the same key;
-  it never displays success before the server confirms.
+  it never displays success before the server confirms. While the outcome is unknown, the dashboard also
+  refuses to switch language, because that would discard the key.
 
 ## Recovery and its limits
 

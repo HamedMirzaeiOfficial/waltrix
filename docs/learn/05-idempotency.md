@@ -1,6 +1,8 @@
 # فصل ۵ — Idempotency: تکرار امن
 
-فایل‌های این فصل: `services/idempotency.py`، `services/runner.py`، `apps/api/src/waltrix_api/deps.py::idempotency_key`، `packages/*-sdk`، [ADR 0004](../architecture/decisions/0004-idempotency-in-the-same-transaction.md)
+[English](en/05-idempotency.md) · **فارسی**
+
+فایل‌های این فصل: `services/idempotency.py`، `services/runner.py`، `apps/api/src/waltrix_api/deps.py::idempotency_key`، `packages/*-sdk`، [ADR 0004](../fa/architecture/decisions/0004-idempotency-in-the-same-transaction.md)
 
 ## ۱. مسئله: «پاسخ نرسید»
 

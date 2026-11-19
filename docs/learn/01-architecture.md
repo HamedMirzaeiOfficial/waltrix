@@ -1,6 +1,8 @@
 # فصل ۱ — نقشه‌ی معماری
 
-فایل‌های این فصل: `packages/ledger-core/`، `apps/api/src/waltrix_api/main.py`، `apps/web/src/lib/api.ts`، [ADR 0001](../architecture/decisions/0001-single-ledger-core.md)
+[English](en/01-architecture.md) · **فارسی**
+
+فایل‌های این فصل: `packages/ledger-core/`، `apps/api/src/waltrix_api/main.py`، `apps/web/src/lib/api.ts`، [ADR 0001](../fa/architecture/decisions/0001-single-ledger-core.md)
 
 ## ۱. مسئله: پروژه دو چهره دارد
 

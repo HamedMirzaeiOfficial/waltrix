@@ -1,5 +1,7 @@
 # ADR 0001: One framework-independent ledger core
 
+**English** · [فارسی](../../fa/architecture/decisions/0001-single-ledger-core.md)
+
 **Status:** accepted
 
 **Context.** The product must work as a dashboard *and* as an engine other applications embed. Duplicated

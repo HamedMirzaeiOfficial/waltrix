@@ -1,6 +1,8 @@
 # فصل ۷ — تطبیق و حسابرسی
 
-فایل‌های این فصل: `services/reconciliation.py`، `services/audit.py`، `features/admin.tsx` (صفحه‌ی Reconciliation)، [reconciliation.md](../reconciliation.md)
+[English](en/07-reconciliation-and-audit.md) · **فارسی**
+
+فایل‌های این فصل: `services/reconciliation.py`، `services/audit.py`، `features/admin.tsx` (صفحه‌ی Reconciliation)، [reconciliation.md](../fa/reconciliation.md)
 
 ## ۱. «اعتماد کن، ولی چک کن»
 

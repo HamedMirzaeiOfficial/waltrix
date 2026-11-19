@@ -1,6 +1,8 @@
 # فصل ۶ — هولد، برگشت و چرخه‌ی وضعیت
 
-فایل‌های این فصل: `state_machine.py`، `services/operations.py` (`create_hold`، `_resolve_hold`، `expire_holds`، `reverse_transaction`)، [transaction-lifecycle.md](../financial-model/transaction-lifecycle.md)، [ADR 0005](../architecture/decisions/0005-holds-as-pending-entries.md)
+[English](en/06-holds-reversals-lifecycle.md) · **فارسی**
+
+فایل‌های این فصل: `state_machine.py`، `services/operations.py` (`create_hold`، `_resolve_hold`، `expire_holds`، `reverse_transaction`)، [transaction-lifecycle.md](../fa/financial-model/transaction-lifecycle.md)، [ADR 0005](../fa/architecture/decisions/0005-holds-as-pending-entries.md)
 
 ## ۱. هولد یعنی چه
 

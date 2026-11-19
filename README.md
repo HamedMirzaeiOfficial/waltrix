@@ -1,5 +1,7 @@
 # Waltrix
 
+**English** · [فارسی](README.fa.md)
+
 **Financial infrastructure, built for correctness.**
 
 Waltrix is an open-source double-entry ledger and digital wallet platform: a financial engine you can embed,
@@ -33,6 +35,9 @@ under concurrency, idempotent retries, reconciliation and tenant isolation.
   "unknown outcome" errors.
 * **Dashboard**: 15 screens, dark-first with a polished light theme, mobile layouts, and a transfer flow
   that never claims success before the server confirms it.
+* **English and Persian**: the dashboard switches language with a full right-to-left layout, Persian
+  digits and the Solar Hijri calendar, and accepts amounts typed in Persian digits. A CI check fails on
+  any untranslated string. All documentation, including the learning guide, exists in both languages.
 
 ## Architecture
 
@@ -57,7 +62,7 @@ All financial logic lives in `packages/ledger-core`; the API, CLI and dashboard 
 | `packages/python-sdk`, `packages/typescript-sdk` | client SDKs |
 | `examples/` | runnable Python checkout and TypeScript payouts integrations |
 | `tests/` | unit, property-based, integration and concurrency tests (real PostgreSQL) |
-| `docs/` | technical docs; [`docs/learn`](docs/learn/README.md) is a Persian study guide |
+| `docs/` | technical docs in English and [Persian](docs/fa/README.md); [`docs/learn`](docs/learn/en/README.md) is a bilingual study guide |
 
 ## How the double entry works
 
@@ -148,7 +153,12 @@ All captured from the running product with synthetic demo data.
 <p align="center">
   <img src="docs/screenshots/mobile-overview.png" width="260" alt="Mobile overview" />
   <img src="docs/screenshots/mobile-wallets.png" width="260" alt="Mobile wallets" />
+  <img src="docs/screenshots/mobile-wallets-fa.png" width="260" alt="Mobile wallets in Persian" />
 </p>
+
+In Persian, right to left, with Persian digits and Solar Hijri dates:
+
+![Overview in Persian](docs/screenshots/overview-fa.png)
 
 ## Database schema
 
@@ -176,6 +186,7 @@ See [docs/concurrency.md](docs/concurrency.md) for the scenario-by-scenario proo
 ```bash
 .venv/bin/pytest                      # needs PostgreSQL; WALTRIX_TEST_DATABASE_URL overrides the default
 npm test                              # TypeScript SDK + dashboard (Vitest)
+npm run i18n:check -w @waltrix/web    # every dashboard string has a Persian translation
 npm run build -w @waltrix/web && (cd apps/web && npx playwright test)
 .venv/bin/ruff check . && .venv/bin/mypy packages/ledger-core/src apps/api/src --ignore-missing-imports
 npm run lint && npm run typecheck
@@ -185,11 +196,11 @@ Results of the last local run (PostgreSQL 18.6, Python 3.14, Node 22):
 
 | Suite | Result |
 | --- | --- |
-| Python: domain unit + Hypothesis, ledger invariants, stateful property test, concurrency/stress, API, SDK | **156 passed** in 28.6 s |
+| Python: domain unit + Hypothesis, ledger invariants, stateful property test, concurrency/stress, API, SDK | **156 passed** in 36.6 s |
 | TypeScript SDK (Vitest) | **30 passed** |
-| Dashboard: state machine + transfer page (Vitest + Testing Library) | **13 passed** |
-| Playwright journeys (desktop + mobile) | **5 passed** |
-| ruff, mypy (core + API; SDK `--strict`), ESLint, Prettier, `tsc --strict` | clean |
+| Dashboard: state machine, transfer page, i18n, language lock (Vitest + Testing Library) | **24 passed** |
+| Playwright journeys (desktop + mobile, a transfer in Persian, a returning user) | **7 passed** |
+| ruff, mypy (core + API; SDK `--strict`), ESLint, Prettier, `tsc --strict`, i18n check (473 strings) | clean |
 
 The concurrency tests check correctness (no overspend, no double execution, no deadlock, conservation of
 money); they are not benchmarks, and no performance figures are claimed.
@@ -210,6 +221,8 @@ header CSRF defense, strict input validation, rate limits, secret-free logs. Ful
 * **Synchronous engine.** No queue for money movement: callers get a final answer, simpler reasoning.
   Background work is limited to idempotent maintenance commands; there is no Celery or Redis.
 * **Replay returns current state**, not the original response bytes.
+* **Remount on language switch.** Simple and reliable, but it discards local state, so it is locked while
+  a money operation is unresolved ([ADR 0006](docs/architecture/decisions/0006-bilingual-dashboard.md)).
 
 ## Known limitations
 
@@ -218,6 +231,8 @@ header CSRF defense, strict input validation, rate limits, secret-free logs. Ful
 * In-process rate limiting and metrics (per replica).
 * Wallet pickers in the dashboard load the first 100 active wallets (no server-side search combobox yet).
 * No MFA, SSO, password reset or email verification.
+* API responses are English; the dashboard translates by stable error code, and field validation messages
+  from the API stay in English.
 * The Docker setup was not executed in the development environment (built in CI only).
 
 ## Roadmap
@@ -232,8 +247,10 @@ balance snapshots for very long histories · OpenAPI-generated SDK types.
 [Double entry](docs/financial-model/double-entry.md) · [Invariants](docs/financial-model/invariants.md) ·
 [Lifecycles](docs/financial-model/transaction-lifecycle.md) · [REST API](docs/api/rest.md) ·
 [Concurrency](docs/concurrency.md) · [Reconciliation](docs/reconciliation.md) · [Security](docs/security.md) ·
-[Design system](docs/design-system.md) · [Deployment](docs/deployment.md) ·
-[راهنمای یادگیری (فارسی)](docs/learn/README.md)
+[Design system](docs/design-system.md) · [Deployment](docs/deployment.md) · [Glossary](docs/glossary.md) ·
+[Learning guide](docs/learn/en/README.md)
+
+In Persian: [مستندات فنی](docs/fa/README.md) · [راهنمای یادگیری](docs/learn/README.md)
 
 ## License
 

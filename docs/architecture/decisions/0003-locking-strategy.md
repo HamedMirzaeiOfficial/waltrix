@@ -1,5 +1,7 @@
 # ADR 0003: READ COMMITTED + deterministic row locks (not SERIALIZABLE)
 
+**English** · [فارسی](../../fa/architecture/decisions/0003-locking-strategy.md)
+
 **Status:** accepted
 
 **Context.** Concurrent debits of one wallet must never overspend; concurrent transfers A->B and B->A must

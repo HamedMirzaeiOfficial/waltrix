@@ -1,6 +1,8 @@
 # فصل ۱۰ — داشبورد و UX عملیات مالی
 
-فایل‌های این فصل: `apps/web/src/features/transfer/{machine.ts,TransferPage.tsx}`، `lib/useIdempotentAction.ts`، `components/ui/data.tsx`، `index.css`، [design-system.md](../design-system.md)
+[English](en/10-dashboard-and-money-ux.md) · **فارسی**
+
+فایل‌های این فصل: `apps/web/src/features/transfer/{machine.ts,TransferPage.tsx}`، `lib/useIdempotentAction.ts`، `components/ui/data.tsx`، `index.css`، [design-system.md](../fa/design-system.md)
 
 ## ۱. بدترین جمله در یک اپ مالی
 
@@ -55,8 +57,8 @@ inFlight.current = true;
 ```ts
 useEffect(() => {
   if (state.kind !== "unknown" || state.attempt > AUTO_VERIFY_ATTEMPTS) return;
-  const t = setTimeout(() => dispatch({ type: "VERIFY" }), verifyDelayMs(state.attempt));
-  return () => clearTimeout(t);
+  const timer = setTimeout(() => dispatch({ type: "VERIFY" }), verifyDelayMs(state.attempt));
+  return () => clearTimeout(timer);
 }, [state]);
 ```
 
@@ -85,6 +87,7 @@ retry برای عملیات مالی فقط در SDK و فقط با کلید ا�
 - **اعداد** با `tabular` (ارقام هم‌عرض) تا ستون‌های مبلغ تراز باشند.
 - **جدول واکنش‌گرا:** `DataTable` از یک تعریف ستون، روی دسکتاپ `<table>` و روی موبایل کارت‌های پشته‌ای می‌سازد. (این باعث یک باگ جالب در تست‌های Playwright شد؛ فصل ۱۳.)
 - **دسترس‌پذیری:** Radix برای focus و کیبورد، `aria-live` برای ناحیه‌ی نتیجه، ردیف‌های قابل فعال‌سازی با Enter، لینک «Skip to content»، و `prefers-reduced-motion`.
+- **دو زبان:** داشبورد فارسی و انگلیسی است، با چیدمان راست‌به‌چپ، ارقام فارسی و تقویم شمسی. جزئیات و اینکه چرا تغییر زبان وسط یک انتقال نامعلوم قفل می‌شود، در [فصل ۱۵](15-i18n.md).
 
 ## تمرین‌ها
 

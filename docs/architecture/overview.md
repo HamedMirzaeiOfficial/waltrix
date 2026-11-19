@@ -1,5 +1,7 @@
 # Architecture overview
 
+**English** · [فارسی](../fa/architecture/overview.md)
+
 Waltrix is a modular monorepo with one hard rule: **financial logic lives in exactly one place**,
 `packages/ledger-core`. The REST API, the CLI, the dashboard and any host application go through it.
 
@@ -84,7 +86,8 @@ packages/python-sdk   waltrix (sync + async)
 packages/typescript-sdk  @waltrix/sdk
 examples/             runnable integrations
 tests/                unit, integration, property-based, concurrency (real PostgreSQL)
-docs/                 this documentation; docs/learn is a Persian study guide
+docs/                 this documentation (English) and docs/fa (Persian); docs/learn is a
+                      bilingual study guide
 ```
 
 See the [decision records](decisions/) for the reasoning behind the main choices.

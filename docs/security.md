@@ -1,5 +1,7 @@
 # Security model
 
+**English** · [فارسی](fa/security.md)
+
 Waltrix is an educational, open-source project. It has **not** been independently audited and makes no
 claim of regulatory compliance (PCI DSS, SOC 2, banking licenses). The controls below are what the code
 actually does.
