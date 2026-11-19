@@ -1,7 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   WaltrixApiError,
-  parseMoney,
   type JournalEntry,
   type TransactionDetail,
   type TransactionStatus,
@@ -28,7 +27,8 @@ import {
 } from "@/components/ui/primitives";
 import { api } from "@/lib/api";
 import { humanError } from "@/lib/errors";
-import { dateTime, formatMoney, humanize } from "@/lib/format";
+import { dateTime, formatMoney, humanize, parseAmount } from "@/lib/format";
+import { msg, t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useIdempotentAction } from "@/lib/useIdempotentAction";
 import { cn } from "@/lib/utils";
@@ -69,8 +69,8 @@ export function TransactionsPage() {
   return (
     <>
       <PageHeader
-        title="Transactions"
-        description="Every operation requested, including failed ones. Money movement itself lives in the ledger."
+        title={t("Transactions")}
+        description={t("Every operation requested, including failed ones. Money movement itself lives in the ledger.")}
       />
       <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 lg:flex-row">
@@ -81,34 +81,37 @@ export function TransactionsPage() {
               set("q", search);
             }}
           >
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
             <Input
-              aria-label="Search transactions"
-              className="pl-9"
-              placeholder="Search by id, reference or description - press Enter"
+              aria-label={t("Search transactions")}
+              className="ps-9"
+              placeholder={t("Search by id, reference or description - press Enter")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </form>
           <Select
-            aria-label="Status"
+            aria-label={t("Status")}
             className="lg:w-40"
             value={status}
             onValueChange={(v) => set("status", v)}
             options={[
-              { value: "all", label: "All statuses" },
+              { value: "all", label: t("All statuses") },
               ...STATUSES.map((s) => ({ value: s, label: humanize(s) })),
             ]}
           />
           <Select
-            aria-label="Type"
+            aria-label={t("Type")}
             className="lg:w-40"
             value={type}
             onValueChange={(v) => set("type", v)}
-            options={[{ value: "all", label: "All types" }, ...TYPES.map((t) => ({ value: t, label: humanize(t) }))]}
+            options={[
+              { value: "all", label: t("All types") },
+              ...TYPES.map((tx) => ({ value: tx, label: humanize(tx) })),
+            ]}
           />
           <Select
-            aria-label="Sort"
+            aria-label={t("Sort")}
             className="lg:w-40"
             value={sort}
             onValueChange={(v) => {
@@ -116,8 +119,8 @@ export function TransactionsPage() {
               pager.reset();
             }}
             options={[
-              { value: "-created_at", label: "Newest first" },
-              { value: "created_at", label: "Oldest first" },
+              { value: "-created_at", label: t("Newest first") },
+              { value: "created_at", label: t("Oldest first") },
             ]}
           />
         </div>
@@ -125,16 +128,16 @@ export function TransactionsPage() {
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
         ) : (
           <DataTable
-            caption="Transactions"
+            caption={t("Transactions")}
             columns={txColumns()}
             rows={query.data?.data}
-            rowKey={(t) => t.id}
-            onRowClick={(t) => navigate(`/transactions/${t.id}`)}
+            rowKey={(tx) => tx.id}
+            onRowClick={(tx) => navigate(`/transactions/${tx.id}`)}
             empty={
               <EmptyState
                 icon={<ArrowLeftRight />}
-                title="No transactions match"
-                description="Adjust the filters or search term."
+                title={t("No transactions match")}
+                description={t("Adjust the filters or search term.")}
               />
             }
           />
@@ -158,17 +161,17 @@ export function EntryLines({ entry }: { entry: JournalEntry }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[520px] text-sm">
-        <caption className="sr-only">Postings of entry {entry.entry_number}</caption>
+        <caption className="sr-only">{t("Postings of entry {number}", { number: entry.entry_number })}</caption>
         <thead>
-          <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-faint">
+          <tr className="border-b border-border text-start text-xs uppercase tracking-wide text-faint">
             <th scope="col" className="px-5 py-2 font-medium">
-              Account
+              {t("Account")}
             </th>
-            <th scope="col" className="px-5 py-2 text-right font-medium">
-              Debit
+            <th scope="col" className="px-5 py-2 text-end font-medium">
+              {t("Debit")}
             </th>
-            <th scope="col" className="px-5 py-2 text-right font-medium">
-              Credit
+            <th scope="col" className="px-5 py-2 text-end font-medium">
+              {t("Credit")}
             </th>
           </tr>
         </thead>
@@ -185,10 +188,10 @@ export function EntryLines({ entry }: { entry: JournalEntry }) {
                 )}
                 <div className="font-mono text-xs text-faint">{p.account_code}</div>
               </td>
-              <td className="px-5 py-2.5 text-right">
+              <td className="px-5 py-2.5 text-end">
                 {p.direction === "debit" ? <Money amount={p.amount} currency={p.currency} /> : ""}
               </td>
-              <td className="px-5 py-2.5 text-right">
+              <td className="px-5 py-2.5 text-end">
                 {p.direction === "credit" ? <Money amount={p.amount} currency={p.currency} /> : ""}
               </td>
             </tr>
@@ -197,19 +200,19 @@ export function EntryLines({ entry }: { entry: JournalEntry }) {
         <tfoot>
           <tr className="text-[13px]">
             <td className="px-5 py-2.5 text-muted">
-              Totals{" "}
+              {t("Totals")}{" "}
               {debits === credits ? (
-                <Badge tone="success" className="ml-2">
-                  Balanced
+                <Badge tone="success" className="ms-2">
+                  {t("Balanced")}
                 </Badge>
               ) : (
-                <Badge tone="danger" className="ml-2">
-                  Unbalanced
+                <Badge tone="danger" className="ms-2">
+                  {t("Unbalanced")}
                 </Badge>
               )}
             </td>
-            <td className="tabular px-5 py-2.5 text-right font-semibold text-fg">{formatMoney(debits, currency)}</td>
-            <td className="tabular px-5 py-2.5 text-right font-semibold text-fg">{formatMoney(credits, currency)}</td>
+            <td className="tabular px-5 py-2.5 text-end font-semibold text-fg">{formatMoney(debits, currency)}</td>
+            <td className="tabular px-5 py-2.5 text-end font-semibold text-fg">{formatMoney(credits, currency)}</td>
           </tr>
         </tfoot>
       </table>
@@ -241,17 +244,20 @@ function ReverseDialog({
     <Dialog
       open={open}
       onOpenChange={close}
-      title="Reverse transaction"
-      description={`Posts an opposite entry. The original stays in the journal. Up to ${formatMoney(remaining, tx.currency)} can be reversed.`}
+      title={t("Reverse transaction")}
+      description={t("Posts an opposite entry. The original stays in the journal. Up to {amount} can be reversed.", {
+        amount: formatMoney(remaining, tx.currency),
+      })}
     >
       <form
         className="space-y-4"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          const minor = amount.trim() ? parseMoney(amount, tx.currency) : remaining;
-          if (minor === null || minor <= 0) return setError("Enter a positive amount");
-          if (minor > remaining) return setError(`At most ${formatMoney(remaining, tx.currency)}`);
+          const minor = amount.trim() ? parseAmount(amount, tx.currency) : remaining;
+          if (minor === null || minor <= 0) return setError(t("Enter a positive amount"));
+          if (minor > remaining)
+            return setError(t("At most {amount}", { amount: formatMoney(remaining, tx.currency) }));
           setError(null);
           void action.run((key) =>
             api.reversals.create(
@@ -262,10 +268,10 @@ function ReverseDialog({
         }}
       >
         <Field
-          label={`Amount (${tx.currency})`}
+          label={t("Amount ({currency})", { currency: tx.currency })}
           htmlFor="rev-amount"
           error={error ?? undefined}
-          hint="Leave empty for a full reversal."
+          hint={t("Leave empty for a full reversal.")}
         >
           <Input
             id="rev-amount"
@@ -277,7 +283,7 @@ function ReverseDialog({
             onChange={(e) => setAmount(e.target.value)}
           />
         </Field>
-        <Field label="Reason" htmlFor="rev-reason">
+        <Field label={t("Reason")} htmlFor="rev-reason">
           <Input
             id="rev-reason"
             value={reason}
@@ -290,15 +296,15 @@ function ReverseDialog({
           status={action.status}
           message={action.message}
           failedTransactionId={action.failedTransactionId}
-          success="Reversal posted."
+          success={t("Reversal posted.")}
         />
         <div className="flex justify-end gap-2">
           <Button type="button" onClick={() => close(false)} disabled={action.pending}>
-            {done ? "Close" : "Cancel"}
+            {done ? t("Close") : t("Cancel")}
           </Button>
           {!done && (
             <Button type="submit" variant="danger" loading={action.pending}>
-              {action.status === "unknown" ? "Retry safely" : "Post reversal"}
+              {action.status === "unknown" ? t("Retry safely") : t("Post reversal")}
             </Button>
           )}
         </div>
@@ -319,55 +325,58 @@ export function TransactionDetailPage() {
         <ErrorState error={q.error} onRetry={() => void q.refetch()} />
       </Card>
     );
-  const t = q.data;
-  const reversible = t && t.status === "posted" && t.type !== "reversal" && (t.posted_amount ?? 0) > t.reversed_amount;
+  const tx = q.data;
+  const reversible =
+    tx && tx.status === "posted" && tx.type !== "reversal" && (tx.posted_amount ?? 0) > tx.reversed_amount;
   return (
     <>
       <PageHeader
         eyebrow={
           <Link to="/transactions" className="hover:text-fg">
-            Transactions
+            {t("Transactions")}
           </Link>
         }
         title={
-          t ? (
+          tx ? (
             <span className="flex flex-wrap items-center gap-3">
-              {t.description || humanize(t.type)} <StatusBadge status={t.status} />
+              {tx.description || humanize(tx.type)} <StatusBadge status={tx.status} />
             </span>
           ) : (
             <Skeleton className="h-7 w-64" />
           )
         }
-        description={t && <CopyId value={t.id} label="transaction id" size={36} />}
+        description={tx && <CopyId value={tx.id} label={t("transaction id")} size={36} />}
         actions={
           reversible &&
           can("money:reverse") && (
             <Button variant="danger-soft" onClick={() => setReversing(true)}>
-              <RotateCcw /> Reverse
+              <RotateCcw /> {t("Reverse")}
             </Button>
           )
         }
       />
-      {!t ? (
+      {!tx ? (
         <Skeleton className="h-64 rounded-[14px]" />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-6">
-            {t.status === "failed" && (
+            {tx.status === "failed" && (
               <div role="alert" className="rounded-xl border border-danger/30 bg-danger-soft p-4 text-sm">
-                <div className="font-medium text-danger">{humanize(t.failure_code)}</div>
+                <div className="font-medium text-danger">{humanize(tx.failure_code)}</div>
                 <div className="mt-0.5 text-fg-2">
-                  {humanError(new WaltrixApiError(422, t.failure_code ?? "operation_failed", t.failure_message ?? ""))}{" "}
-                  No journal entry was posted, so no money moved.
+                  {humanError(
+                    new WaltrixApiError(422, tx.failure_code ?? "operation_failed", tx.failure_message ?? ""),
+                  )}{" "}
+                  {t("No journal entry was posted, so no money moved.")}
                 </div>
               </div>
             )}
-            {t.journal_entries.map((e) => (
+            {tx.journal_entries.map((e) => (
               <Card key={e.id}>
                 <CardHeader
                   title={
                     <Link to={`/ledger/entries/${e.id}`} className="hover:text-primary">
-                      Journal entry #{e.entry_number}
+                      {t("Journal entry #{number}", { number: e.entry_number })}
                     </Link>
                   }
                   description={`${humanize(e.kind)} · ${dateTime(e.created_at)}`}
@@ -376,18 +385,18 @@ export function TransactionDetailPage() {
                 <EntryLines entry={e} />
               </Card>
             ))}
-            {t.reversals.length > 0 && (
+            {tx.reversals.length > 0 && (
               <Card>
-                <CardHeader title="Reversals" description="Corrections posted against this transaction" />
+                <CardHeader title={t("Reversals")} description={t("Corrections posted against this transaction")} />
                 <ul className="divide-y divide-border">
-                  {t.reversals.map((r) => (
+                  {tx.reversals.map((r) => (
                     <li key={r.id}>
                       <button
-                        className="flex w-full items-center justify-between gap-4 px-5 py-3 text-left hover:bg-surface-hover"
+                        className="flex w-full items-center justify-between gap-4 px-5 py-3 text-start hover:bg-surface-hover"
                         onClick={() => navigate(`/transactions/${r.id}`)}
                       >
                         <span className="min-w-0">
-                          <span className="block truncate text-sm text-fg">{r.description || "Reversal"}</span>
+                          <span className="block truncate text-sm text-fg">{r.description || t("Reversal")}</span>
                           <span className="text-xs text-muted">{dateTime(r.created_at)}</span>
                         </span>
                         <span className="flex items-center gap-3">
@@ -402,77 +411,81 @@ export function TransactionDetailPage() {
             )}
           </div>
           <Card className="h-fit">
-            <CardHeader title="Details" />
+            <CardHeader title={t("Details")} />
             <dl className="divide-y divide-border text-sm">
               {(
                 [
-                  ["Amount", <Money key="a" amount={t.amount} currency={t.currency} className="text-fg" />],
-                  ["Posted", <Money key="p" amount={t.posted_amount} currency={t.currency} />],
-                  ["Reversed", <Money key="r" amount={t.reversed_amount || null} currency={t.currency} />],
-                  ["Type", humanize(t.type)],
+                  [msg("Amount"), <Money key="a" amount={tx.amount} currency={tx.currency} className="text-fg" />],
+                  [msg("Posted"), <Money key="p" amount={tx.posted_amount} currency={tx.currency} />],
+                  [msg("Reversed"), <Money key="r" amount={tx.reversed_amount || null} currency={tx.currency} />],
+                  [msg("Type"), humanize(tx.type)],
                   [
-                    "From",
-                    t.source_wallet_id ? (
-                      <Link key="f" className="text-primary hover:underline" to={`/wallets/${t.source_wallet_id}`}>
-                        {t.source_wallet_id.slice(0, 8)}
+                    msg("From"),
+                    tx.source_wallet_id ? (
+                      <Link key="f" className="text-primary hover:underline" to={`/wallets/${tx.source_wallet_id}`}>
+                        {tx.source_wallet_id.slice(0, 8)}
                       </Link>
-                    ) : t.type === "deposit" ? (
-                      "Simulated funding"
+                    ) : tx.type === "deposit" ? (
+                      t("Simulated funding")
                     ) : (
                       "-"
                     ),
                   ],
                   [
-                    "To",
-                    t.destination_wallet_id ? (
-                      <Link key="t" className="text-primary hover:underline" to={`/wallets/${t.destination_wallet_id}`}>
-                        {t.destination_wallet_id.slice(0, 8)}
+                    msg("To"),
+                    tx.destination_wallet_id ? (
+                      <Link
+                        key="t"
+                        className="text-primary hover:underline"
+                        to={`/wallets/${tx.destination_wallet_id}`}
+                      >
+                        {tx.destination_wallet_id.slice(0, 8)}
                       </Link>
-                    ) : t.type === "withdrawal" ? (
-                      "Simulated funding"
+                    ) : tx.type === "withdrawal" ? (
+                      t("Simulated funding")
                     ) : (
                       "-"
                     ),
                   ],
                   [
-                    "Original",
-                    t.original_transaction_id ? (
+                    msg("Original"),
+                    tx.original_transaction_id ? (
                       <Link
                         key="o"
                         className="text-primary hover:underline"
-                        to={`/transactions/${t.original_transaction_id}`}
+                        to={`/transactions/${tx.original_transaction_id}`}
                       >
-                        {t.original_transaction_id.slice(0, 8)}
+                        {tx.original_transaction_id.slice(0, 8)}
                       </Link>
                     ) : null,
                   ],
-                  ["Hold", t.hold_id ? <CopyId key="h" value={t.hold_id} /> : null],
-                  ["Reference", t.reference],
-                  ["Actor", `${humanize(t.actor_type)}${t.actor_id ? ` · ${t.actor_id.slice(0, 8)}` : ""}`],
+                  [msg("Hold"), tx.hold_id ? <CopyId key="h" value={tx.hold_id} /> : null],
+                  [msg("Reference"), tx.reference],
+                  [msg("Actor"), `${humanize(tx.actor_type)}${tx.actor_id ? ` · ${tx.actor_id.slice(0, 8)}` : ""}`],
                   [
-                    "Correlation",
-                    t.correlation_id ? (
+                    msg("Correlation"),
+                    tx.correlation_id ? (
                       <span key="c" className="break-all font-mono text-xs">
-                        {t.correlation_id}
+                        {tx.correlation_id}
                       </span>
                     ) : null,
                   ],
-                  ["Created", dateTime(t.created_at)],
-                  ["Posted at", dateTime(t.posted_at)],
+                  [msg("Created"), dateTime(tx.created_at)],
+                  [msg("Posted at"), dateTime(tx.posted_at)],
                 ] as [string, React.ReactNode][]
               )
                 .filter(([, v]) => v !== null && v !== undefined)
                 .map(([k, v]) => (
                   <div key={k} className="flex items-start justify-between gap-4 px-5 py-2.5">
-                    <dt className="shrink-0 text-muted">{k}</dt>
-                    <dd className={cn("min-w-0 text-right text-fg-2")}>{v}</dd>
+                    <dt className="shrink-0 text-muted">{t(k)}</dt>
+                    <dd className={cn("min-w-0 text-end text-fg-2")}>{v}</dd>
                   </div>
                 ))}
             </dl>
           </Card>
         </div>
       )}
-      {t && reversing && <ReverseDialog tx={t} open onOpenChange={setReversing} />}
+      {tx && reversing && <ReverseDialog tx={tx} open onOpenChange={setReversing} />}
     </>
   );
 }

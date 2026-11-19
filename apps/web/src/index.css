@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/vazirmatn";
 
 /*
  * Waltrix design tokens. Dark is the default; light is an equal citizen.
@@ -102,7 +103,7 @@
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
   --color-ring: var(--ring);
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Inter Variable", "Vazirmatn Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
   --shadow-card: var(--shadow);
   --shadow-pop: var(--shadow-lg);
@@ -120,6 +121,19 @@
   }
   body {
     min-height: 100dvh;
+  }
+  /* Persian: Vazirmatn first so Latin and Persian share one rhythm; Inter's stylistic sets do not apply. */
+  html[lang="fa"] {
+    font-family: "Vazirmatn Variable", var(--font-sans);
+    font-feature-settings: normal;
+  }
+  /* Ids, keys and codes are left-to-right even inside right-to-left text. */
+  [dir="rtl"] .font-mono {
+    unicode-bidi: isolate;
+  }
+  /* Header cells keep the browser's centring unless told otherwise; follow the reading direction. */
+  th {
+    text-align: start;
   }
   ::selection {
     background: var(--primary-soft);

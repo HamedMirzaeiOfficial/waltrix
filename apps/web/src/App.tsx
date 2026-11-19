@@ -10,6 +10,8 @@ import { Skeleton } from "@/components/ui/primitives";
 import { Toaster } from "@/components/ui/toast";
 import { LoginPage, OrganizationsPage } from "@/features/auth";
 import { OverviewPage } from "@/features/overview";
+import { t } from "@/lib/i18n";
+import { LangProvider } from "@/lib/lang";
 import { SessionProvider, useSession } from "@/lib/session";
 
 const WalletsPage = lazy(() => import("@/features/wallets").then((m) => ({ default: m.WalletsPage })));
@@ -50,7 +52,7 @@ const queryClient = new QueryClient({
 
 function FullPageLoader() {
   return (
-    <div className="grid min-h-dvh place-items-center bg-bg" aria-busy="true" aria-label="Loading">
+    <div className="grid min-h-dvh place-items-center bg-bg" aria-busy="true" aria-label={t("Loading")}>
       <Skeleton className="h-10 w-40" />
     </div>
   );
@@ -74,55 +76,57 @@ const PageFallback = () => <Skeleton className="h-96 rounded-[14px]" />;
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ErrorBoundary>
-          <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <SessionProvider>
-              <Routes>
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/organizations" element={<OrganizationsPage />} />
-                <Route element={<RequireOrg />}>
-                  <Route element={<AppShell />}>
-                    <Route
-                      element={
-                        <ErrorBoundary>
-                          <Suspense fallback={<PageFallback />}>
-                            <Outlet />
-                          </Suspense>
-                        </ErrorBoundary>
-                      }
-                    >
-                      <Route index element={<OverviewPage />} />
-                      <Route path="wallets" element={<WalletsPage />} />
-                      <Route path="wallets/:id" element={<WalletDetailPage />} />
-                      <Route element={<RequirePermission permission="money:move" />}>
-                        <Route path="transfer" element={<TransferPage />} />
+      <LangProvider>
+        <TooltipProvider>
+          <ErrorBoundary>
+            <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <SessionProvider>
+                <Routes>
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/organizations" element={<OrganizationsPage />} />
+                  <Route element={<RequireOrg />}>
+                    <Route element={<AppShell />}>
+                      <Route
+                        element={
+                          <ErrorBoundary>
+                            <Suspense fallback={<PageFallback />}>
+                              <Outlet />
+                            </Suspense>
+                          </ErrorBoundary>
+                        }
+                      >
+                        <Route index element={<OverviewPage />} />
+                        <Route path="wallets" element={<WalletsPage />} />
+                        <Route path="wallets/:id" element={<WalletDetailPage />} />
+                        <Route element={<RequirePermission permission="money:move" />}>
+                          <Route path="transfer" element={<TransferPage />} />
+                        </Route>
+                        <Route path="transactions" element={<TransactionsPage />} />
+                        <Route path="transactions/:id" element={<TransactionDetailPage />} />
+                        <Route path="ledger" element={<LedgerPage />} />
+                        <Route path="ledger/entries/:id" element={<JournalEntryPage />} />
+                        <Route element={<RequirePermission permission="reconciliation:read" />}>
+                          <Route path="reconciliation" element={<ReconciliationPage />} />
+                        </Route>
+                        <Route element={<RequirePermission permission="audit:read" />}>
+                          <Route path="audit" element={<AuditPage />} />
+                        </Route>
+                        <Route element={<RequirePermission permission="api_keys:manage" />}>
+                          <Route path="settings/api-keys" element={<ApiKeysPage />} />
+                        </Route>
+                        <Route path="settings/members" element={<MembersPage />} />
+                        <Route path="settings/organization" element={<OrganizationSettingsPage />} />
+                        <Route path="*" element={<Navigate to="/" replace />} />
                       </Route>
-                      <Route path="transactions" element={<TransactionsPage />} />
-                      <Route path="transactions/:id" element={<TransactionDetailPage />} />
-                      <Route path="ledger" element={<LedgerPage />} />
-                      <Route path="ledger/entries/:id" element={<JournalEntryPage />} />
-                      <Route element={<RequirePermission permission="reconciliation:read" />}>
-                        <Route path="reconciliation" element={<ReconciliationPage />} />
-                      </Route>
-                      <Route element={<RequirePermission permission="audit:read" />}>
-                        <Route path="audit" element={<AuditPage />} />
-                      </Route>
-                      <Route element={<RequirePermission permission="api_keys:manage" />}>
-                        <Route path="settings/api-keys" element={<ApiKeysPage />} />
-                      </Route>
-                      <Route path="settings/members" element={<MembersPage />} />
-                      <Route path="settings/organization" element={<OrganizationSettingsPage />} />
-                      <Route path="*" element={<Navigate to="/" replace />} />
                     </Route>
                   </Route>
-                </Route>
-              </Routes>
-            </SessionProvider>
-          </BrowserRouter>
-          <Toaster />
-        </ErrorBoundary>
-      </TooltipProvider>
+                </Routes>
+              </SessionProvider>
+            </BrowserRouter>
+            <Toaster />
+          </ErrorBoundary>
+        </TooltipProvider>
+      </LangProvider>
     </QueryClientProvider>
   );
 }

@@ -2,7 +2,8 @@ import { AlertTriangle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-reac
 import { Component, useState, type ErrorInfo, type ReactNode } from "react";
 
 import { humanError } from "@/lib/errors";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, humanize } from "@/lib/format";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 import { Badge, Button, Skeleton } from "./primitives";
@@ -61,8 +62,8 @@ export function DataTable<T>({
                   key={c.key}
                   scope="col"
                   className={cn(
-                    "whitespace-nowrap px-5 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-faint",
-                    c.align === "right" && "text-right",
+                    "whitespace-nowrap px-5 py-2.5 text-start text-xs font-medium uppercase tracking-wide text-faint",
+                    c.align === "right" && "text-end",
                     c.className,
                   )}
                 >
@@ -86,7 +87,7 @@ export function DataTable<T>({
                 {columns.map((c) => (
                   <td
                     key={c.key}
-                    className={cn("px-5 py-3 align-middle", c.align === "right" && "text-right", c.className)}
+                    className={cn("px-5 py-3 align-middle", c.align === "right" && "text-end", c.className)}
                   >
                     {c.cell(row)}
                   </td>
@@ -128,7 +129,7 @@ export function DataTable<T>({
 
 export function TableSkeleton({ columns = 5, rows = 6 }: { columns?: number; rows?: number }) {
   return (
-    <div className="space-y-0 p-2" aria-busy="true" aria-label="Loading">
+    <div className="space-y-0 p-2" aria-busy="true" aria-label={t("Loading")}>
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex gap-4 px-3 py-3">
           {Array.from({ length: columns }, (_, j) => (
@@ -168,14 +169,14 @@ export function Pager({
 }) {
   if (page === 1 && !hasMore) return null;
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-between border-t border-border px-5 py-3">
-      <span className="text-xs text-muted">Page {page}</span>
+    <nav aria-label={t("Pagination")} className="flex items-center justify-between border-t border-border px-5 py-3">
+      <span className="text-xs text-muted">{t("Page {page}", { page })}</span>
       <div className="flex gap-2">
-        <Button size="sm" onClick={onPrev} disabled={page === 1 || busy} aria-label="Previous page">
-          <ChevronLeft /> Previous
+        <Button size="sm" onClick={onPrev} disabled={page === 1 || busy} aria-label={t("Previous page")}>
+          <ChevronLeft className="rtl:-scale-x-100" /> {t("Previous")}
         </Button>
-        <Button size="sm" onClick={onNext} disabled={!hasMore || busy} aria-label="Next page">
-          Next <ChevronRight />
+        <Button size="sm" onClick={onNext} disabled={!hasMore || busy} aria-label={t("Next page")}>
+          {t("Next")} <ChevronRight className="rtl:-scale-x-100" />
         </Button>
       </div>
     </nav>
@@ -200,7 +201,7 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "info" | "n
 export function StatusBadge({ status }: { status: string }) {
   return (
     <Badge tone={STATUS_TONE[status] ?? "neutral"} dot>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+      {humanize(status)}
     </Badge>
   );
 }
@@ -220,6 +221,7 @@ export function Money({
   const negative = signed === "out" || signed === "debit";
   return (
     <span
+      dir="ltr"
       className={cn(
         "tabular whitespace-nowrap font-medium",
         signed === "in" && "text-success",
@@ -239,11 +241,11 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () =>
       <div className="mb-3 grid size-10 place-items-center rounded-xl bg-danger-soft text-danger">
         <AlertTriangle className="size-5" />
       </div>
-      <p className="text-sm font-medium text-fg">Could not load this data</p>
+      <p className="text-sm font-medium text-fg">{t("Could not load this data")}</p>
       <p className="mt-1 max-w-sm text-[13px] text-muted">{humanError(error)}</p>
       {onRetry && (
         <Button size="sm" className="mt-4" onClick={onRetry}>
-          <RefreshCw /> Try again
+          <RefreshCw /> {t("Try again")}
         </Button>
       )}
     </div>
@@ -265,12 +267,12 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { error: E
     if (!this.state.error) return this.props.children;
     return (
       <div className="card mx-auto mt-16 max-w-md p-8 text-center">
-        <p className="text-base font-semibold text-fg">This screen crashed</p>
+        <p className="text-base font-semibold text-fg">{t("This screen crashed")}</p>
         <p className="mt-2 text-sm text-muted">
-          No financial operation was affected by this display error. Reload to continue.
+          {t("No financial operation was affected by this display error. Reload to continue.")}
         </p>
         <Button className="mt-5" variant="primary" onClick={() => window.location.reload()}>
-          Reload
+          {t("Reload")}
         </Button>
       </div>
     );

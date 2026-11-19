@@ -20,6 +20,7 @@ import { Select } from "@/components/ui/overlays";
 import { Badge, Button, Card, CardHeader, EmptyState, PageHeader, Skeleton, Stat } from "@/components/ui/primitives";
 import { api } from "@/lib/api";
 import { compactMoney, formatMoney, humanize, relative, shortDate } from "@/lib/format";
+import { intlLocale, num, t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 
@@ -33,36 +34,36 @@ const STATUS_COLORS: Record<string, string> = {
 
 /** Transaction columns. With `walletId`, amounts are signed relative to that wallet (+ in, − out). */
 export function txColumns(walletId?: string): Column<Transaction>[] {
-  const sign = (t: Transaction): "in" | "out" | undefined => {
-    if (!walletId || t.status === "failed") return undefined;
-    if (t.type === "hold" && t.status === "pending") return undefined;
-    return t.destination_wallet_id === walletId ? "in" : t.source_wallet_id === walletId ? "out" : undefined;
+  const sign = (tx: Transaction): "in" | "out" | undefined => {
+    if (!walletId || tx.status === "failed") return undefined;
+    if (tx.type === "hold" && tx.status === "pending") return undefined;
+    return tx.destination_wallet_id === walletId ? "in" : tx.source_wallet_id === walletId ? "out" : undefined;
   };
   return [
     {
       key: "desc",
-      header: "Transaction",
+      header: t("Transaction"),
       primary: true,
-      cell: (t) => (
+      cell: (tx) => (
         <div className="min-w-0">
-          <div className="truncate font-medium text-fg">{t.description || humanize(t.type)}</div>
-          <div className="font-mono text-xs text-faint">{t.id.slice(0, 8)}</div>
+          <div className="truncate font-medium text-fg">{tx.description || humanize(tx.type)}</div>
+          <div className="font-mono text-xs text-faint">{tx.id.slice(0, 8)}</div>
         </div>
       ),
     },
-    { key: "type", header: "Type", cell: (t) => <span className="text-fg-2">{humanize(t.type)}</span> },
-    { key: "status", header: "Status", cell: (t) => <StatusBadge status={t.status} /> },
+    { key: "type", header: t("Type"), cell: (tx) => <span className="text-fg-2">{humanize(tx.type)}</span> },
+    { key: "status", header: t("Status"), cell: (tx) => <StatusBadge status={tx.status} /> },
     {
       key: "amount",
-      header: "Amount",
+      header: t("Amount"),
       align: "right",
-      cell: (t) => <Money amount={t.posted_amount ?? t.amount} currency={t.currency} signed={sign(t)} />,
+      cell: (tx) => <Money amount={tx.posted_amount ?? tx.amount} currency={tx.currency} signed={sign(tx)} />,
     },
     {
       key: "when",
-      header: "Created",
+      header: t("Created"),
       align: "right",
-      cell: (t) => <span className="whitespace-nowrap text-[13px] text-muted">{relative(t.created_at)}</span>,
+      cell: (tx) => <span className="whitespace-nowrap text-[13px] text-muted">{relative(tx.created_at)}</span>,
     },
   ];
 }
@@ -89,12 +90,12 @@ function VolumeChart({ overview }: { overview: Overview }) {
   return (
     <Card className="lg:col-span-2">
       <CardHeader
-        title="Posted volume"
-        description={`Last ${overview.window_days} days · reversals excluded`}
+        title={t("Posted volume")}
+        description={t("Last {days} days · reversals excluded", { days: overview.window_days })}
         action={
           currencies.length > 1 ? (
             <Select
-              aria-label="Chart currency"
+              aria-label={t("Chart currency")}
               className="h-8 w-24"
               value={active}
               onValueChange={setCurrency}
@@ -107,11 +108,12 @@ function VolumeChart({ overview }: { overview: Overview }) {
         {!active ? (
           <EmptyState
             icon={<Activity />}
-            title="No posted volume yet"
-            description="Volume appears after the first posted transaction."
+            title={t("No posted volume yet")}
+            description={t("Volume appears after the first posted transaction.")}
           />
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
+          // Time runs left to right in both languages: the chart keeps an LTR layout.
+          <ResponsiveContainer width="100%" height="100%" style={{ direction: "ltr" }}>
             <AreaChart data={data} margin={{ left: 8, right: 16, top: 8 }}>
               <defs>
                 <linearGradient id="vol" x1="0" y1="0" x2="0" y2="1">
@@ -146,8 +148,8 @@ function VolumeChart({ overview }: { overview: Overview }) {
                 }}
                 labelFormatter={(d) => shortDate(`${String(d)}T00:00:00Z`)}
                 formatter={(v, _n, item) => [
-                  `${formatMoney(Number(v), active)} · ${(item.payload as { count: number }).count} tx`,
-                  "Volume",
+                  `${formatMoney(Number(v), active)} · ${t("{count} tx", { count: (item.payload as { count: number }).count })}`,
+                  t("Volume"),
                 ]}
               />
               <Area
@@ -171,12 +173,12 @@ function StatusDistribution({ counts }: { counts: Overview["transaction_counts"]
   const total = entries.reduce((s, [, n]) => s + (n ?? 0), 0);
   return (
     <Card>
-      <CardHeader title="Status distribution" description={`${total.toLocaleString()} transactions`} />
+      <CardHeader title={t("Status distribution")} description={t("{count} transactions", { count: total })} />
       <div className="space-y-4 p-5">
         <div
           className="flex h-2.5 overflow-hidden rounded-full bg-surface-2"
           role="img"
-          aria-label="Transaction status distribution"
+          aria-label={t("Transaction status distribution")}
         >
           {entries.map(([s, n]) => (
             <div key={s} style={{ width: `${((n ?? 0) / Math.max(total, 1)) * 100}%`, background: STATUS_COLORS[s] }} />
@@ -190,12 +192,14 @@ function StatusDistribution({ counts }: { counts: Overview["transaction_counts"]
                 {humanize(s)}
               </span>
               <span className="tabular text-muted">
-                {(n ?? 0).toLocaleString()}{" "}
-                <span className="text-faint">({total ? Math.round(((n ?? 0) / total) * 100) : 0}%)</span>
+                {num(n ?? 0)}{" "}
+                <span className="text-faint">
+                  ({new Intl.NumberFormat(intlLocale(), { style: "percent" }).format(total ? (n ?? 0) / total : 0)})
+                </span>
               </span>
             </li>
           ))}
-          {entries.length === 0 && <li className="text-sm text-muted">No transactions yet.</li>}
+          {entries.length === 0 && <li className="text-sm text-muted">{t("No transactions yet.")}</li>}
         </ul>
       </div>
     </Card>
@@ -215,12 +219,12 @@ export function OverviewPage() {
     <>
       <PageHeader
         eyebrow={membership?.organization.name}
-        title="Overview"
-        description="Live figures computed from the journal. Nothing on this page is estimated."
+        title={t("Overview")}
+        description={t("Live figures computed from the journal. Nothing on this page is estimated.")}
         actions={
           can("money:move") && (
             <Button variant="primary" onClick={() => navigate("/transfer")}>
-              <Send /> New transfer
+              <Send /> {t("New transfer")}
             </Button>
           )
         }
@@ -238,7 +242,7 @@ export function OverviewPage() {
               <>
                 <Card className="p-5 sm:col-span-2 xl:col-span-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-medium text-muted">Wallet balances</span>
+                    <span className="text-[13px] font-medium text-muted">{t("Wallet balances")}</span>
                     <span className="grid size-8 place-items-center rounded-lg bg-primary-soft text-primary">
                       <Wallet className="size-4" />
                     </span>
@@ -249,36 +253,38 @@ export function OverviewPage() {
                         <span className="tabular text-xl font-semibold tracking-tight text-fg">
                           {formatMoney(b.total_posted, b.currency)}
                         </span>
-                        <span className="text-xs text-muted">{b.wallet_count} wallets</span>
+                        <span className="text-xs text-muted">{t("{count} wallets", { count: b.wallet_count })}</span>
                       </li>
                     ))}
-                    {o.balances.length === 0 && <li className="text-sm text-muted">No wallets yet</li>}
+                    {o.balances.length === 0 && <li className="text-sm text-muted">{t("No wallets yet")}</li>}
                   </ul>
                 </Card>
                 <Stat
-                  label="Transactions"
-                  value={totalTx.toLocaleString()}
+                  label={t("Transactions")}
+                  value={num(totalTx)}
                   icon={<ArrowLeftRight />}
-                  sub="All time, all statuses"
+                  sub={t("All time, all statuses")}
                 />
                 <Stat
-                  label="Active holds"
-                  value={o.active_holds.reduce((s, h) => s + h.count, 0).toLocaleString()}
+                  label={t("Active holds")}
+                  value={num(o.active_holds.reduce((s, h) => s + h.count, 0))}
                   icon={<Lock />}
-                  sub={o.active_holds.map((h) => formatMoney(h.amount, h.currency)).join(" · ") || "Nothing reserved"}
+                  sub={
+                    o.active_holds.map((h) => formatMoney(h.amount, h.currency)).join(" · ") || t("Nothing reserved")
+                  }
                 />
                 <Stat
-                  label="Failed (24h)"
-                  value={o.failed_last_24h.toLocaleString()}
+                  label={t("Failed (24h)")}
+                  value={num(o.failed_last_24h)}
                   icon={<AlertOctagon />}
                   tone={o.failed_last_24h ? "danger" : undefined}
                   sub={
                     o.failed_last_24h ? (
                       <Link to="/transactions?status=failed" className="text-danger hover:underline">
-                        Review failed operations
+                        {t("Review failed operations")}
                       </Link>
                     ) : (
-                      "No failures in the last day"
+                      t("No failures in the last day")
                     )
                   }
                 />
@@ -298,10 +304,10 @@ export function OverviewPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-2">
               <CardHeader
-                title="Recent activity"
+                title={t("Recent activity")}
                 action={
                   <Button variant="ghost" size="sm" onClick={() => navigate("/transactions")}>
-                    View all
+                    {t("View all")}
                   </Button>
                 }
               />
@@ -309,34 +315,34 @@ export function OverviewPage() {
                 <ErrorState error={recent.error} onRetry={() => void recent.refetch()} />
               ) : (
                 <DataTable
-                  caption="Recent transactions"
+                  caption={t("Recent transactions")}
                   columns={txColumns()}
                   rows={recent.data?.data}
-                  rowKey={(t) => t.id}
-                  onRowClick={(t) => navigate(`/transactions/${t.id}`)}
+                  rowKey={(tx) => tx.id}
+                  onRowClick={(tx) => navigate(`/transactions/${tx.id}`)}
                   empty={
                     <EmptyState
                       icon={<ArrowLeftRight />}
-                      title="No transactions yet"
-                      description="Fund a wallet to get started."
+                      title={t("No transactions yet")}
+                      description={t("Fund a wallet to get started.")}
                     />
                   }
                 />
               )}
             </Card>
             <Card>
-              <CardHeader title="Reconciliation" description="Journal vs. materialized balances" />
+              <CardHeader title={t("Reconciliation")} description={t("Journal vs. materialized balances")} />
               <div className="p-5">
                 {!o ? (
                   <Skeleton className="h-24" />
                 ) : !recon ? (
                   <EmptyState
                     icon={<ShieldAlert />}
-                    title="Never reconciled"
-                    description="Run a reconciliation to verify every balance against the journal."
+                    title={t("Never reconciled")}
+                    description={t("Run a reconciliation to verify every balance against the journal.")}
                     action={
                       <Button size="sm" onClick={() => navigate("/reconciliation")}>
-                        Open reconciliation
+                        {t("Open reconciliation")}
                       </Button>
                     }
                   />
@@ -357,33 +363,36 @@ export function OverviewPage() {
                       )}
                       <div>
                         <div className="text-sm font-semibold text-fg">
-                          {recon.status === "passed" ? "All checks passed" : `${recon.summary.errors} issue(s) found`}
+                          {recon.status === "passed"
+                            ? t("All checks passed")
+                            : t("{count} issue(s) found", { count: recon.summary.errors })}
                         </div>
                         <div className="flex items-center gap-1 text-xs text-muted">
-                          <Clock className="size-3" /> {relative(recon.created_at)} · {recon.duration_ms} ms
+                          <Clock className="size-3" /> {relative(recon.created_at)} ·{" "}
+                          {t("{ms} ms", { ms: recon.duration_ms })}
                         </div>
                       </div>
                     </div>
                     <dl className="grid grid-cols-2 gap-3 text-[13px]">
                       <div>
-                        <dt className="text-faint">Checks</dt>
-                        <dd className="tabular text-fg">{Object.keys(recon.summary.checks).length}</dd>
+                        <dt className="text-faint">{t("Checks")}</dt>
+                        <dd className="tabular text-fg">{num(Object.keys(recon.summary.checks).length)}</dd>
                       </div>
                       <div>
-                        <dt className="text-faint">Warnings</dt>
-                        <dd className="tabular text-fg">{recon.summary.warnings}</dd>
+                        <dt className="text-faint">{t("Warnings")}</dt>
+                        <dd className="tabular text-fg">{num(recon.summary.warnings)}</dd>
                       </div>
                       <div>
-                        <dt className="text-faint">Journal entries</dt>
-                        <dd className="tabular text-fg">{recon.summary.counts["entries"]?.toLocaleString()}</dd>
+                        <dt className="text-faint">{t("Journal entries")}</dt>
+                        <dd className="tabular text-fg">{num(recon.summary.counts["entries"] ?? 0)}</dd>
                       </div>
                       <div>
-                        <dt className="text-faint">Postings</dt>
-                        <dd className="tabular text-fg">{recon.summary.counts["postings"]?.toLocaleString()}</dd>
+                        <dt className="text-faint">{t("Postings")}</dt>
+                        <dd className="tabular text-fg">{num(recon.summary.counts["postings"] ?? 0)}</dd>
                       </div>
                     </dl>
                     <Button size="sm" className="w-full" onClick={() => navigate("/reconciliation")}>
-                      Details
+                      {t("Details")}
                     </Button>
                   </div>
                 )}
@@ -391,8 +400,8 @@ export function OverviewPage() {
             </Card>
           </div>
           <p className="flex items-center gap-2 text-xs text-faint">
-            <Badge tone="warning">Simulated funding</Badge>
-            Deposits and withdrawals use a synthetic funding account. No real bank settlement occurs.
+            <Badge tone="warning">{t("Simulated funding")}</Badge>
+            {t("Deposits and withdrawals use a synthetic funding account. No real bank settlement occurs.")}
           </p>
         </div>
       )}

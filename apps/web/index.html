@@ -12,6 +12,14 @@
         const t = localStorage.getItem("waltrix-theme");
         if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
       } catch {}
+      // Language before the first render: saved choice, else the browser language. Sets dir too, so a
+      // Persian user never sees a left-to-right flash. src/lib/i18n.ts reads <html lang> on startup.
+      try {
+        let lang = localStorage.getItem("waltrix-lang");
+        if (lang !== "fa" && lang !== "en") lang = /^fa\b/i.test(navigator.language || "") ? "fa" : "en";
+        document.documentElement.lang = lang;
+        document.documentElement.dir = lang === "fa" ? "rtl" : "ltr";
+      } catch {}
     </script>
   </head>
   <body>

@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { useSyncExternalStore, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { isRtl, t } from "@/lib/i18n";
 
 type Tone = "success" | "error" | "info" | "warning";
 interface ToastItem {
@@ -23,7 +24,7 @@ export function toast(tone: Tone, title: string, description?: ReactNode): void 
 }
 
 function dismiss(id: number) {
-  items = items.filter((t) => t.id !== id);
+  items = items.filter((item) => item.id !== id);
   emit();
 }
 
@@ -39,31 +40,31 @@ export function Toaster() {
     () => items,
   );
   return (
-    <ToastPrimitive.Provider swipeDirection="right" duration={5000}>
-      {list.map((t) => {
-        const Icon = ICONS[t.tone];
+    <ToastPrimitive.Provider swipeDirection={isRtl() ? "left" : "right"} duration={5000}>
+      {list.map((item) => {
+        const Icon = ICONS[item.tone];
         return (
           <ToastPrimitive.Root
-            key={t.id}
-            onOpenChange={(open) => !open && dismiss(t.id)}
+            key={item.id}
+            onOpenChange={(open) => !open && dismiss(item.id)}
             className="card flex items-start gap-3 p-4 shadow-pop data-[state=open]:animate-fade-up"
           >
-            <Icon className={cn("mt-0.5 size-5 shrink-0", TONES[t.tone])} aria-hidden />
+            <Icon className={cn("mt-0.5 size-5 shrink-0", TONES[item.tone])} aria-hidden />
             <div className="min-w-0 flex-1">
-              <ToastPrimitive.Title className="text-sm font-medium text-fg">{t.title}</ToastPrimitive.Title>
-              {t.description && (
+              <ToastPrimitive.Title className="text-sm font-medium text-fg">{item.title}</ToastPrimitive.Title>
+              {item.description && (
                 <ToastPrimitive.Description className="mt-0.5 text-[13px] text-muted">
-                  {t.description}
+                  {item.description}
                 </ToastPrimitive.Description>
               )}
             </div>
-            <ToastPrimitive.Close aria-label="Dismiss" className="text-muted hover:text-fg">
+            <ToastPrimitive.Close aria-label={t("Dismiss")} className="text-muted hover:text-fg">
               <X className="size-4" />
             </ToastPrimitive.Close>
           </ToastPrimitive.Root>
         );
       })}
-      <ToastPrimitive.Viewport className="fixed bottom-4 right-4 z-[60] flex w-[min(380px,calc(100vw-2rem))] flex-col gap-2 outline-none" />
+      <ToastPrimitive.Viewport className="fixed bottom-4 end-4 z-[60] flex w-[min(380px,calc(100vw-2rem))] flex-col gap-2 outline-none" />
     </ToastPrimitive.Provider>
   );
 }

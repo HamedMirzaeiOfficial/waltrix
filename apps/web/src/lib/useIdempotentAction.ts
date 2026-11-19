@@ -3,6 +3,7 @@ import { WaltrixApiError, WaltrixUnknownOutcomeError, newIdempotencyKey } from "
 import { useCallback, useRef, useState } from "react";
 
 import { humanError } from "./errors";
+import { useLanguageLock } from "./lang";
 
 export type ActionStatus = "idle" | "pending" | "success" | "failed" | "rejected" | "unknown";
 
@@ -23,6 +24,7 @@ export function useIdempotentAction<T>() {
   const [result, setResult] = useState<T | null>(null);
   const [failedTransactionId, setFailedTx] = useState<string | null>(null);
   const busy = useRef(false);
+  useLanguageLock(status === "pending" || status === "unknown");
 
   const run = useCallback(
     async (fn: (idempotencyKey: string) => Promise<T>): Promise<T | null> => {

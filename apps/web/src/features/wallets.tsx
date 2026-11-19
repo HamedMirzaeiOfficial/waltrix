@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { parseMoney, type Hold, type StatementLine, type Wallet } from "@waltrix/sdk";
+import { type Hold, type StatementLine, type Wallet } from "@waltrix/sdk";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -35,7 +35,8 @@ import {
 import { toast } from "@/components/ui/toast";
 import { api } from "@/lib/api";
 import { humanError } from "@/lib/errors";
-import { dateTime, formatMoney, humanize, relative } from "@/lib/format";
+import { dateTime, formatMoney, humanize, parseAmount, relative } from "@/lib/format";
+import { msg, t, tMaybe } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { useIdempotentAction } from "@/lib/useIdempotentAction";
 
@@ -44,13 +45,13 @@ import { txColumns } from "./overview";
 const CURRENCIES = ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "AED", "IRR", "KRW"];
 
 const createSchema = z.object({
-  name: z.string().trim().min(1, "Name is required").max(120),
+  name: z.string().trim().min(1, msg("Name is required")).max(120),
   owner_reference: z
     .string()
     .trim()
-    .min(1, "Owner reference is required")
+    .min(1, msg("Owner reference is required"))
     .max(120)
-    .regex(/^[\w.:@-]+$/, "Letters, digits and . _ : @ - only"),
+    .regex(/^[\w.:@-]+$/, msg("Letters, digits and . _ : @ - only")),
   currency: z.string().length(3),
 });
 
@@ -65,7 +66,7 @@ function CreateWalletDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     mutationFn: (v: z.infer<typeof createSchema>) => api.wallets.create(v),
     onSuccess: (w) => {
       void qc.invalidateQueries({ queryKey: ["wallets"] });
-      toast("success", "Wallet created", `${w.name} (${w.currency})`);
+      toast("success", t("Wallet created"), `${w.name} (${w.currency})`);
       onOpenChange(false);
       form.reset();
       navigate(`/wallets/${w.id}`);
@@ -75,22 +76,22 @@ function CreateWalletDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Create wallet"
-      description="A wallet is backed by its own liability account in the ledger."
+      title={t("Create wallet")}
+      description={t("A wallet is backed by its own liability account in the ledger.")}
     >
       <form className="space-y-4" onSubmit={form.handleSubmit((v) => create.mutate(v))} noValidate>
-        <Field label="Display name" htmlFor="w-name" error={form.formState.errors.name?.message}>
+        <Field label={t("Display name")} htmlFor="w-name" error={tMaybe(form.formState.errors.name?.message)}>
           <Input id="w-name" {...form.register("name")} />
         </Field>
         <Field
-          label="Owner reference"
+          label={t("Owner reference")}
           htmlFor="w-owner"
-          error={form.formState.errors.owner_reference?.message}
-          hint="Your customer id in your own system, e.g. cust_1042."
+          error={tMaybe(form.formState.errors.owner_reference?.message)}
+          hint={t("Your customer id in your own system, e.g. cust_1042.")}
         >
           <Input id="w-owner" className="font-mono" {...form.register("owner_reference")} />
         </Field>
-        <Field label="Currency" htmlFor="w-currency" hint="A wallet holds exactly one currency, forever.">
+        <Field label={t("Currency")} htmlFor="w-currency" hint={t("A wallet holds exactly one currency, forever.")}>
           <Controller
             control={form.control}
             name="currency"
@@ -111,10 +112,10 @@ function CreateWalletDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         )}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button type="submit" variant="primary" loading={create.isPending}>
-            Create wallet
+            {t("Create wallet")}
           </Button>
         </div>
       </form>
@@ -145,7 +146,7 @@ export function WalletsPage() {
   const columns: Column<Wallet>[] = [
     {
       key: "name",
-      header: "Wallet",
+      header: t("Wallet"),
       primary: true,
       cell: (w) => (
         <div className="flex items-center gap-3">
@@ -159,15 +160,15 @@ export function WalletsPage() {
         </div>
       ),
     },
-    { key: "status", header: "Status", cell: (w) => <StatusBadge status={w.status} /> },
+    { key: "status", header: t("Status"), cell: (w) => <StatusBadge status={w.status} /> },
     {
       key: "currency",
-      header: "Currency",
+      header: t("Currency"),
       cell: (w) => <span className="font-mono text-xs text-fg-2">{w.currency}</span>,
     },
     {
       key: "held",
-      header: "On hold",
+      header: t("On hold"),
       align: "right",
       hideOnMobile: true,
       cell: (w) =>
@@ -179,13 +180,13 @@ export function WalletsPage() {
     },
     {
       key: "available",
-      header: "Available",
+      header: t("Available"),
       align: "right",
       cell: (w) => <Money amount={w.balance.available} currency={w.currency} />,
     },
     {
       key: "posted",
-      header: "Balance",
+      header: t("Balance"),
       align: "right",
       cell: (w) => <Money amount={w.balance.posted} currency={w.currency} className="text-fg" />,
     },
@@ -193,12 +194,14 @@ export function WalletsPage() {
   return (
     <>
       <PageHeader
-        title="Wallets"
-        description="Customer-facing balances. Each wallet is a view over a ledger account; balances come from the journal."
+        title={t("Wallets")}
+        description={t(
+          "Customer-facing balances. Each wallet is a view over a ledger account; balances come from the journal.",
+        )}
         actions={
           can("wallets:manage") && (
             <Button variant="primary" onClick={() => setCreating(true)}>
-              <Plus /> New wallet
+              <Plus /> {t("New wallet")}
             </Button>
           )
         }
@@ -206,11 +209,11 @@ export function WalletsPage() {
       <Card>
         <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
             <Input
-              aria-label="Search wallets"
-              placeholder="Search name or owner reference"
-              className="pl-9"
+              aria-label={t("Search wallets")}
+              placeholder={t("Search name or owner reference")}
+              className="ps-9"
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -219,7 +222,7 @@ export function WalletsPage() {
             />
           </div>
           <Select
-            aria-label="Status filter"
+            aria-label={t("Status filter")}
             className="sm:w-40"
             value={status}
             onValueChange={(v) => {
@@ -227,26 +230,26 @@ export function WalletsPage() {
               pager.reset();
             }}
             options={[
-              { value: "all", label: "All statuses" },
+              { value: "all", label: t("All statuses") },
               ...["active", "suspended", "closed"].map((s) => ({ value: s, label: humanize(s) })),
             ]}
           />
           <Select
-            aria-label="Currency filter"
+            aria-label={t("Currency filter")}
             className="sm:w-36"
             value={currency}
             onValueChange={(v) => {
               setCurrency(v);
               pager.reset();
             }}
-            options={[{ value: "all", label: "All currencies" }, ...CURRENCIES.map((c) => ({ value: c, label: c }))]}
+            options={[{ value: "all", label: t("All currencies") }, ...CURRENCIES.map((c) => ({ value: c, label: c }))]}
           />
         </div>
         {query.error ? (
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
         ) : (
           <DataTable
-            caption="Wallets"
+            caption={t("Wallets")}
             columns={columns}
             rows={query.data?.data}
             rowKey={(w) => w.id}
@@ -254,14 +257,14 @@ export function WalletsPage() {
             empty={
               <EmptyState
                 icon={<WalletIcon />}
-                title={search ? "No matching wallets" : "No wallets yet"}
+                title={search ? t("No matching wallets") : t("No wallets yet")}
                 description={
-                  search ? "Try another search term." : "Create a wallet for each customer balance you hold."
+                  search ? t("Try another search term.") : t("Create a wallet for each customer balance you hold.")
                 }
                 action={
                   !search && can("wallets:manage") ? (
                     <Button variant="primary" onClick={() => setCreating(true)}>
-                      <Plus /> New wallet
+                      <Plus /> {t("New wallet")}
                     </Button>
                   ) : undefined
                 }
@@ -311,9 +314,10 @@ function FundingDialog({
   };
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    const minor = parseMoney(amount, wallet.currency);
-    if (minor === null || minor <= 0) return setError(`Enter a positive ${wallet.currency} amount`);
-    if (kind === "debit" && minor > wallet.balance.available) return setError("Exceeds the available balance");
+    const minor = parseAmount(amount, wallet.currency);
+    if (minor === null || minor <= 0)
+      return setError(t("Enter a positive {currency} amount", { currency: wallet.currency }));
+    if (kind === "debit" && minor > wallet.balance.available) return setError(t("Exceeds the available balance"));
     setError(null);
     void action.run((key) =>
       api.wallets[kind](
@@ -328,19 +332,24 @@ function FundingDialog({
     <Dialog
       open={open}
       onOpenChange={close}
-      title={kind === "credit" ? "Add funds (simulated)" : "Withdraw funds (simulated)"}
+      title={kind === "credit" ? t("Add funds (simulated)") : t("Withdraw funds (simulated)")}
       description={
         <span>
-          <Badge tone="warning">Synthetic</Badge> Uses the simulated funding source. No real bank transfer happens.
+          <Badge tone="warning">{t("Synthetic")}</Badge>{" "}
+          {t("Uses the simulated funding source. No real bank transfer happens.")}
         </span>
       }
     >
       <form className="space-y-4" onSubmit={submit} noValidate>
         <Field
-          label={`Amount (${wallet.currency})`}
+          label={t("Amount ({currency})", { currency: wallet.currency })}
           htmlFor="fund-amount"
           error={error ?? undefined}
-          hint={kind === "debit" ? `Available: ${formatMoney(wallet.balance.available, wallet.currency)}` : undefined}
+          hint={
+            kind === "debit"
+              ? t("Available: {amount}", { amount: formatMoney(wallet.balance.available, wallet.currency) })
+              : undefined
+          }
         >
           <Input
             id="fund-amount"
@@ -354,7 +363,7 @@ function FundingDialog({
             }}
           />
         </Field>
-        <Field label="Description (optional)" htmlFor="fund-desc">
+        <Field label={t("Description (optional)")} htmlFor="fund-desc">
           <Input
             id="fund-desc"
             value={description}
@@ -366,7 +375,11 @@ function FundingDialog({
           status={action.status}
           message={action.message}
           failedTransactionId={action.failedTransactionId}
-          success={`${kind === "credit" ? "Credited" : "Debited"} ${amount} ${wallet.currency}.`}
+          success={
+            kind === "credit"
+              ? t("Credited {amount} {currency}.", { amount, currency: wallet.currency })
+              : t("Debited {amount} {currency}.", { amount, currency: wallet.currency })
+          }
         />
         <div className="flex justify-end gap-2">
           <Button type="button" onClick={() => close(false)} disabled={action.pending}>
@@ -374,7 +387,7 @@ function FundingDialog({
           </Button>
           {!done && (
             <Button type="submit" variant="primary" loading={action.pending}>
-              {action.status === "unknown" ? "Retry safely" : kind === "credit" ? "Add funds" : "Withdraw"}
+              {action.status === "unknown" ? t("Retry safely") : kind === "credit" ? t("Add funds") : t("Withdraw")}
             </Button>
           )}
         </div>
@@ -416,17 +429,18 @@ function HoldDialog({
     <Dialog
       open={open}
       onOpenChange={close}
-      title="Reserve funds"
-      description="A hold moves funds to pending. Capture posts it; release returns it."
+      title={t("Reserve funds")}
+      description={t("A hold moves funds to pending. Capture posts it; release returns it.")}
     >
       <form
         className="space-y-4"
         noValidate
         onSubmit={(e) => {
           e.preventDefault();
-          const minor = parseMoney(amount, wallet.currency);
-          if (!dest) return setError("Choose a destination wallet");
-          if (minor === null || minor <= 0) return setError(`Enter a positive ${wallet.currency} amount`);
+          const minor = parseAmount(amount, wallet.currency);
+          if (!dest) return setError(t("Choose a destination wallet"));
+          if (minor === null || minor <= 0)
+            return setError(t("Enter a positive {currency} amount", { currency: wallet.currency }));
           setError(null);
           void action.run((key) =>
             api.holds.create(
@@ -436,22 +450,22 @@ function HoldDialog({
           );
         }}
       >
-        <Field label="Beneficiary wallet" htmlFor="hold-dest">
+        <Field label={t("Beneficiary wallet")} htmlFor="hold-dest">
           <Select
             id="hold-dest"
             value={dest}
             onValueChange={setDest}
-            placeholder="Select wallet"
+            placeholder={t("Select wallet")}
             options={(others.data?.data ?? [])
               .filter((w) => w.id !== wallet.id)
               .map((w) => ({ value: w.id, label: w.name, hint: w.owner_reference }))}
           />
         </Field>
         <Field
-          label={`Amount (${wallet.currency})`}
+          label={t("Amount ({currency})", { currency: wallet.currency })}
           htmlFor="hold-amount"
           error={error ?? undefined}
-          hint={`Available: ${formatMoney(wallet.balance.available, wallet.currency)}`}
+          hint={t("Available: {amount}", { amount: formatMoney(wallet.balance.available, wallet.currency) })}
         >
           <Input
             id="hold-amount"
@@ -466,7 +480,7 @@ function HoldDialog({
           status={action.status}
           message={action.message}
           failedTransactionId={action.failedTransactionId}
-          success="Funds reserved. The hold expires in 7 days unless captured or released."
+          success={t("Funds reserved. The hold expires in 7 days unless captured or released.")}
         />
         <div className="flex justify-end gap-2">
           <Button type="button" onClick={() => close(false)} disabled={action.pending}>
@@ -474,7 +488,7 @@ function HoldDialog({
           </Button>
           {!done && (
             <Button type="submit" variant="primary" loading={action.pending}>
-              {action.status === "unknown" ? "Retry safely" : "Reserve"}
+              {action.status === "unknown" ? t("Retry safely") : t("Reserve")}
             </Button>
           )}
         </div>
@@ -496,28 +510,33 @@ function HoldsPanel({ wallet }: { wallet: Wallet }) {
   const columns: Column<Hold>[] = [
     {
       key: "id",
-      header: "Hold",
+      header: t("Hold"),
       primary: true,
       cell: (h) => (
         <div>
           <div className="font-medium text-fg">
-            {h.description || (h.wallet_id === wallet.id ? "Outgoing hold" : "Incoming hold")}
+            {h.description || (h.wallet_id === wallet.id ? t("Outgoing hold") : t("Incoming hold"))}
           </div>
           <CopyId value={h.id} />
         </div>
       ),
     },
-    { key: "status", header: "Status", cell: (h) => <StatusBadge status={h.status} /> },
-    { key: "amount", header: "Amount", align: "right", cell: (h) => <Money amount={h.amount} currency={h.currency} /> },
+    { key: "status", header: t("Status"), cell: (h) => <StatusBadge status={h.status} /> },
+    {
+      key: "amount",
+      header: t("Amount"),
+      align: "right",
+      cell: (h) => <Money amount={h.amount} currency={h.currency} />,
+    },
     {
       key: "captured",
-      header: "Captured",
+      header: t("Captured"),
       align: "right",
       cell: (h) => <Money amount={h.captured_amount} currency={h.currency} />,
     },
     {
       key: "expires",
-      header: "Expires",
+      header: t("Expires"),
       align: "right",
       cell: (h) => (
         <span className="text-[13px] text-muted">{h.status === "active" ? relative(h.expires_at) : "-"}</span>
@@ -538,7 +557,7 @@ function HoldsPanel({ wallet }: { wallet: Wallet }) {
                 setTarget({ hold: h, kind: "capture" });
               }}
             >
-              Capture
+              {t("Capture")}
             </Button>
             <Button
               size="sm"
@@ -548,7 +567,7 @@ function HoldsPanel({ wallet }: { wallet: Wallet }) {
                 setTarget({ hold: h, kind: "release" });
               }}
             >
-              Release
+              {t("Release")}
             </Button>
           </div>
         ) : null,
@@ -557,23 +576,29 @@ function HoldsPanel({ wallet }: { wallet: Wallet }) {
   return (
     <>
       <DataTable
-        caption="Holds"
+        caption={t("Holds")}
         columns={columns}
         rows={holds.data?.data}
         rowKey={(h) => h.id}
-        empty={<EmptyState icon={<Lock />} title="No holds" description="Reserved funds will appear here." />}
+        empty={<EmptyState icon={<Lock />} title={t("No holds")} description={t("Reserved funds will appear here.")} />}
       />
       {target && (
         <ConfirmDialog
           open
           onOpenChange={(o) => !o && setTarget(null)}
-          title={target.kind === "capture" ? "Capture full hold?" : "Release hold?"}
+          title={target.kind === "capture" ? t("Capture full hold?") : t("Release hold?")}
           description={
             target.kind === "capture"
-              ? `Posts ${formatMoney(target.hold.amount, target.hold.currency)} to the beneficiary. This is final.`
-              : `Returns ${formatMoney(target.hold.amount, target.hold.currency)} to the available balance.`
+              ? t("Posts {amount} to the beneficiary. This is final.", {
+                  amount: formatMoney(target.hold.amount, target.hold.currency),
+                })
+              : t("Returns {amount} to the available balance.", {
+                  amount: formatMoney(target.hold.amount, target.hold.currency),
+                })
           }
-          confirmLabel={act.status === "unknown" ? "Retry safely" : target.kind === "capture" ? "Capture" : "Release"}
+          confirmLabel={
+            act.status === "unknown" ? t("Retry safely") : target.kind === "capture" ? t("Capture") : t("Release")
+          }
           loading={act.pending}
           onConfirm={async () => {
             if (act.status === "success" || act.status === "failed") return setTarget(null);
@@ -583,12 +608,12 @@ function HoldsPanel({ wallet }: { wallet: Wallet }) {
                 : api.holds.release(target.hold.id, { idempotencyKey: key }),
             );
             if (res) {
-              toast("success", target.kind === "capture" ? "Hold captured" : "Hold released");
+              toast("success", target.kind === "capture" ? t("Hold captured") : t("Hold released"));
               setTarget(null);
             }
           }}
         >
-          <ActionResult status={act.status} message={act.message} success="Done." />
+          <ActionResult status={act.status} message={act.message} success={t("Done.")} />
         </ConfirmDialog>
       )}
     </>
@@ -600,7 +625,7 @@ function StatementPanel({ wallet }: { wallet: Wallet }) {
   const columns: Column<StatementLine>[] = [
     {
       key: "entry",
-      header: "Entry",
+      header: t("Entry"),
       primary: true,
       cell: (l) => (
         <div>
@@ -617,12 +642,12 @@ function StatementPanel({ wallet }: { wallet: Wallet }) {
     },
     {
       key: "when",
-      header: "Date",
+      header: t("Date"),
       cell: (l) => <span className="whitespace-nowrap text-[13px] text-muted">{dateTime(l.created_at)}</span>,
     },
     {
       key: "amount",
-      header: "Amount",
+      header: t("Amount"),
       align: "right",
       cell: (l) => (
         <Money amount={l.amount} currency={wallet.currency} signed={l.direction === "credit" ? "in" : "out"} />
@@ -630,7 +655,7 @@ function StatementPanel({ wallet }: { wallet: Wallet }) {
     },
     {
       key: "balance",
-      header: "Balance",
+      header: t("Balance"),
       align: "right",
       cell: (l) => <Money amount={l.balance_after} currency={wallet.currency} className="text-fg" />,
     },
@@ -641,29 +666,29 @@ function StatementPanel({ wallet }: { wallet: Wallet }) {
       {st.data && (
         <div className="grid grid-cols-2 gap-4 border-b border-border px-5 py-4 text-[13px] sm:grid-cols-4">
           <div>
-            <div className="text-faint">Opening</div>
+            <div className="text-faint">{t("Opening")}</div>
             <Money amount={st.data.opening_balance} currency={wallet.currency} />
           </div>
           <div>
-            <div className="text-faint">Credits</div>
+            <div className="text-faint">{t("Credits")}</div>
             <Money amount={st.data.total_credits} currency={wallet.currency} className="text-success" />
           </div>
           <div>
-            <div className="text-faint">Debits</div>
+            <div className="text-faint">{t("Debits")}</div>
             <Money amount={st.data.total_debits} currency={wallet.currency} />
           </div>
           <div>
-            <div className="text-faint">Closing</div>
+            <div className="text-faint">{t("Closing")}</div>
             <Money amount={st.data.closing_balance} currency={wallet.currency} className="text-fg" />
           </div>
         </div>
       )}
       <DataTable
-        caption="Statement"
+        caption={t("Statement")}
         columns={columns}
         rows={st.data ? [...st.data.lines].reverse() : undefined}
         rowKey={(l) => String(l.posting_id)}
-        empty={<EmptyState icon={<WalletIcon />} title="No posted activity" />}
+        empty={<EmptyState icon={<WalletIcon />} title={t("No posted activity")} />}
       />
     </>
   );
@@ -686,11 +711,11 @@ export function WalletDetailPage() {
       a === "suspend" ? api.wallets.suspend(id) : a === "activate" ? api.wallets.activate(id) : api.wallets.close(id),
     onSuccess: (w) => {
       void qc.invalidateQueries({ queryKey: ["wallets"] });
-      toast("success", `Wallet ${w.status}`);
+      toast("success", t("Wallet status: {status}", { status: humanize(w.status) }));
       setStatusAction(null);
     },
     onError: (err) => {
-      toast("error", "Status change failed", humanError(err));
+      toast("error", t("Status change failed"), humanError(err));
       setStatusAction(null);
     },
   });
@@ -707,7 +732,7 @@ export function WalletDetailPage() {
       <PageHeader
         eyebrow={
           <Link to="/wallets" className="hover:text-fg">
-            Wallets
+            {t("Wallets")}
           </Link>
         }
         title={
@@ -723,9 +748,9 @@ export function WalletDetailPage() {
           w && (
             <span className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-xs">{w.owner_reference}</span>
-              <CopyId value={w.id} label="wallet id" />
+              <CopyId value={w.id} label={t("wallet id")} />
               <span className="text-faint">·</span>
-              <span className="text-xs">Created {dateTime(w.created_at)}</span>
+              <span className="text-xs">{t("Created {date}", { date: dateTime(w.created_at) })}</span>
             </span>
           )
         }
@@ -735,37 +760,37 @@ export function WalletDetailPage() {
             <>
               {can("money:move") && w.status === "active" && (
                 <Button variant="primary" onClick={() => navigate(`/transfer?from=${w.id}`)}>
-                  <Send /> Transfer
+                  <Send /> {t("Transfer")}
                 </Button>
               )}
               {can("money:fund") && w.status === "active" && (
                 <Button onClick={() => setDialog("credit")}>
-                  <ArrowDownLeft /> Add funds
+                  <ArrowDownLeft /> {t("Add funds")}
                 </Button>
               )}
               {can("money:fund") && w.status === "active" && (
                 <Button onClick={() => setDialog("debit")}>
-                  <ArrowUpRight /> Withdraw
+                  <ArrowUpRight /> {t("Withdraw")}
                 </Button>
               )}
               {can("money:move") && w.status === "active" && (
                 <Button onClick={() => setDialog("hold")}>
-                  <Lock /> Hold
+                  <Lock /> {t("Hold")}
                 </Button>
               )}
               {can("wallets:manage") &&
                 (w.status === "active" ? (
                   <Button variant="ghost" onClick={() => setStatusAction("suspend")}>
-                    <Pause /> Suspend
+                    <Pause /> {t("Suspend")}
                   </Button>
                 ) : (
                   <Button variant="ghost" onClick={() => setStatusAction("activate")}>
-                    <Play /> Activate
+                    <Play /> {t("Activate")}
                   </Button>
                 ))}
               {can("wallets:manage") && (
                 <Button variant="ghost" onClick={() => setStatusAction("close")}>
-                  <Ban /> Close
+                  <Ban /> {t("Close")}
                 </Button>
               )}
             </>
@@ -774,16 +799,16 @@ export function WalletDetailPage() {
       />
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         {[
-          ["Available", w?.balance.available, "Posted minus outgoing holds"],
-          ["Posted balance", w?.balance.posted, "Sum of posted journal lines"],
-          ["On hold", w?.balance.pending_outgoing, "Reserved by active holds"],
+          [msg("Available"), w?.balance.available, msg("Posted minus outgoing holds")],
+          [msg("Posted balance"), w?.balance.posted, msg("Sum of posted journal lines")],
+          [msg("On hold"), w?.balance.pending_outgoing, msg("Reserved by active holds")],
         ].map(([label, value, sub]) => (
           <Card key={label as string} className="p-5">
-            <div className="text-[13px] font-medium text-muted">{label as string}</div>
+            <div className="text-[13px] font-medium text-muted">{t(label as string)}</div>
             <div className="tabular mt-2 text-2xl font-semibold tracking-tight text-fg">
               {w ? formatMoney(value as number, w.currency) : <Skeleton className="h-8 w-32" />}
             </div>
-            <div className="mt-1 text-xs text-faint">{sub as string}</div>
+            <div className="mt-1 text-xs text-faint">{t(sub as string)}</div>
           </Card>
         ))}
       </div>
@@ -793,9 +818,9 @@ export function WalletDetailPage() {
             <div className="px-5 pt-3">
               <TabsList
                 items={[
-                  { value: "activity", label: "Transactions" },
-                  { value: "statement", label: "Statement" },
-                  { value: "holds", label: "Holds" },
+                  { value: "activity", label: t("Transactions") },
+                  { value: "statement", label: t("Statement") },
+                  { value: "holds", label: t("Holds") },
                 ]}
               />
             </div>
@@ -804,12 +829,12 @@ export function WalletDetailPage() {
                 <ErrorState error={txs.error} />
               ) : (
                 <DataTable
-                  caption="Wallet transactions"
+                  caption={t("Wallet transactions")}
                   columns={txColumns(w.id)}
                   rows={txs.data?.data}
-                  rowKey={(t) => t.id}
-                  onRowClick={(t) => navigate(`/transactions/${t.id}`)}
-                  empty={<EmptyState icon={<WalletIcon />} title="No transactions yet" />}
+                  rowKey={(tx) => tx.id}
+                  onRowClick={(tx) => navigate(`/transactions/${tx.id}`)}
+                  empty={<EmptyState icon={<WalletIcon />} title={t("No transactions yet")} />}
                 />
               )}
             </TabsContent>
@@ -832,13 +857,21 @@ export function WalletDetailPage() {
           onOpenChange={(o) => !o && setStatusAction(null)}
           loading={changeStatus.isPending}
           danger={statusAction !== "activate"}
-          title={`${humanize(statusAction)} wallet?`}
+          title={
+            statusAction === "suspend"
+              ? t("Suspend wallet?")
+              : statusAction === "close"
+                ? t("Close wallet?")
+                : t("Activate wallet?")
+          }
           description={
             statusAction === "suspend"
-              ? "Suspended wallets cannot send, receive or reserve funds until reactivated. Existing history is unchanged."
+              ? t(
+                  "Suspended wallets cannot send, receive or reserve funds until reactivated. Existing history is unchanged.",
+                )
               : statusAction === "close"
-                ? "Closing is permanent and only allowed with a zero balance and no active holds."
-                : "The wallet will be able to move money again."
+                ? t("Closing is permanent and only allowed with a zero balance and no active holds.")
+                : t("The wallet will be able to move money again.")
           }
           confirmLabel={humanize(statusAction)}
           onConfirm={() => changeStatus.mutate(statusAction)}

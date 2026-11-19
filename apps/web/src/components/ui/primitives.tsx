@@ -4,6 +4,7 @@ import { Check, Copy, Loader2 } from "lucide-react";
 import { forwardRef, useState, type HTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 export const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all " +
@@ -195,7 +196,7 @@ export function CopyId({ value, label, size = 8 }: { value: string; label?: stri
         });
       }}
       title={value}
-      aria-label={`Copy ${label ?? "id"} ${value}`}
+      aria-label={`${t("Copy")} ${label ?? "id"} ${value}`}
       className="group inline-flex items-center gap-1 rounded-md px-1 font-mono text-xs text-muted hover:bg-surface-hover hover:text-fg"
     >
       {value.slice(0, size)}

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import type { ActionStatus } from "@/lib/useIdempotentAction";
+import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /** Inline outcome banner for money-moving dialogs. Never shows success before the server confirms. */
@@ -22,26 +23,26 @@ export function ActionResult({
     success: {
       icon: CheckCircle2,
       tone: "border-success/25 bg-success-soft text-success",
-      title: "Confirmed",
+      title: t("Confirmed"),
       body: success,
     },
     failed: {
       icon: XCircle,
       tone: "border-danger/30 bg-danger-soft text-danger",
-      title: "Failed - no money moved",
+      title: t("Failed - no money moved"),
       body: message,
     },
     rejected: {
       icon: AlertTriangle,
       tone: "border-warning/30 bg-warning-soft text-warning",
-      title: "Not accepted",
+      title: t("Not accepted"),
       body: message,
     },
     unknown: {
       icon: HelpCircle,
       tone: "border-warning/30 bg-warning-soft text-warning",
-      title: "Result unknown",
-      body: `${message ?? ""} Retrying reuses the same idempotency key, so it cannot apply twice.`,
+      title: t("Result unknown"),
+      body: `${message ?? ""} ${t("Retrying reuses the same idempotency key, so it cannot apply twice.")}`,
     },
   }[status];
   const Icon = map.icon;
@@ -56,7 +57,7 @@ export function ActionResult({
             to={`/transactions/${failedTransactionId}`}
             className="mt-1 inline-block font-mono text-xs text-primary hover:underline"
           >
-            View failed transaction
+            {t("View failed transaction")}
           </Link>
         )}
       </div>

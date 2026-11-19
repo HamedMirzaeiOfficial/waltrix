@@ -7,6 +7,7 @@ import { Check, ChevronDown, X } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { t } from "@/lib/i18n";
 
 import { Button } from "./primitives";
 
@@ -50,7 +51,7 @@ export function Dialog({
               )}
             </div>
             <DialogPrimitive.Close asChild>
-              <Button variant="ghost" size="icon" aria-label="Close" className="-mr-2 -mt-1 size-8">
+              <Button variant="ghost" size="icon" aria-label={t("Close")} className="-me-2 -mt-1 size-8">
                 <X />
               </Button>
             </DialogPrimitive.Close>
@@ -96,7 +97,7 @@ export function ConfirmDialog({
           {children && <div className="mt-4">{children}</div>}
           <div className="mt-6 flex justify-end gap-2">
             <AlertDialogPrimitive.Cancel asChild>
-              <Button disabled={loading}>Cancel</Button>
+              <Button disabled={loading}>{t("Cancel")}</Button>
             </AlertDialogPrimitive.Cancel>
             <Button variant={danger ? "danger" : "primary"} loading={loading} onClick={onConfirm}>
               {confirmLabel}
@@ -134,7 +135,7 @@ export function Select({
         aria-label={ariaLabel}
         aria-invalid={invalid || undefined}
         className={cn(
-          "flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-border bg-bg/60 px-3 text-left",
+          "flex h-10 w-full items-center justify-between gap-2 rounded-lg border border-border bg-bg/60 px-3 text-start",
           "text-sm text-fg hover:border-border-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/40",
           "data-[placeholder]:text-faint aria-invalid:border-danger",
           className,
@@ -159,11 +160,11 @@ export function Select({
                 key={o.value}
                 value={o.value}
                 disabled={o.disabled}
-                className="relative flex cursor-default select-none items-center justify-between gap-6 rounded-lg py-2 pl-3 pr-8 text-sm text-fg outline-none data-[disabled]:opacity-40 data-[highlighted]:bg-surface-hover"
+                className="relative flex cursor-default select-none items-center justify-between gap-6 rounded-lg py-2 ps-3 pe-8 text-sm text-fg outline-none data-[disabled]:opacity-40 data-[highlighted]:bg-surface-hover"
               >
                 <SelectPrimitive.ItemText>{o.label}</SelectPrimitive.ItemText>
                 {o.hint && <span className="tabular text-xs text-muted">{o.hint}</span>}
-                <SelectPrimitive.ItemIndicator className="absolute right-2.5">
+                <SelectPrimitive.ItemIndicator className="absolute end-2.5">
                   <Check className="size-4 text-primary" />
                 </SelectPrimitive.ItemIndicator>
               </SelectPrimitive.Item>
