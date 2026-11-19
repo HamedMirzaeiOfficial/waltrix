@@ -1,0 +1,21 @@
+line-length = 110
+target-version = "py312"
+extend-exclude = ["**/node_modules", ".local"]
+
+[lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM", "RUF"]
+ignore = [
+  "S101",   # assert is used in tests and for internal invariants
+  "S608",   # SQL in reconciliation is static text with bound parameters
+  "RUF012",
+  "B008",   # FastAPI Depends() in defaults
+]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["S105", "S106", "S311", "B017"]
+"tests/**" = ["S105", "S106", "S311", "B017"]
+"**/migrations/versions/*.py" = ["E501"]
+"examples/**" = ["S105", "S106"]
+
+[lint.isort]
+known-first-party = ["waltrix_core", "waltrix_api", "waltrix"]
