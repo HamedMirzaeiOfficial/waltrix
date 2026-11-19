@@ -14,7 +14,9 @@ from waltrix_core.services.context import Actor
 from waltrix_core.services.ledger import balance_view
 
 
-def new_wallet(session: Session, actor: Actor, currency: str = "USD", funded: int = 0, name: str = "w") -> UUID:
+def new_wallet(
+    session: Session, actor: Actor, currency: str = "USD", funded: int = 0, name: str = "w"
+) -> UUID:
     res = wallets.create_wallet(
         session, actor, name=name, owner_reference=f"cust_{uuid.uuid4().hex[:6]}", currency=currency
     )

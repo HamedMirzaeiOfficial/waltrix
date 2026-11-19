@@ -65,7 +65,10 @@ def session(session_factory: sessionmaker[Session]) -> Iterator[Session]:
 def make_org(session: Session, name: str = "Acme") -> tuple[Actor, uuid.UUID]:
     """Create a user + organization; return an OWNER actor and the user id."""
     user = identity.register_user(
-        session, email=f"{uuid.uuid4().hex[:8]}@example.test", password="correct-horse-battery", display_name=name
+        session,
+        email=f"{uuid.uuid4().hex[:8]}@example.test",
+        password="correct-horse-battery",
+        display_name=name,
     )
     org = identity.create_organization(session, user, name=name)
     return Actor(org.id, ActorType.USER, str(user.id), user.email, Role.OWNER, "test"), user.id

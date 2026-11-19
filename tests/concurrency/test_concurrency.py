@@ -29,9 +29,7 @@ from waltrix_core.services.ledger import now
 from waltrix_core.services.runner import OperationResult
 
 
-def run_concurrently(
-    factory: sessionmaker[Session], n: int, fn: Callable[[Session, int], Any]
-) -> list[Any]:
+def run_concurrently(factory: sessionmaker[Session], n: int, fn: Callable[[Session, int], Any]) -> list[Any]:
     barrier = threading.Barrier(n)
 
     def worker(i: int) -> Any:
@@ -48,13 +46,17 @@ def run_concurrently(
         return list(pool.map(worker, range(n)))
 
 
-def test_concurrent_debits_cannot_overspend(session: Session, session_factory: sessionmaker[Session], owner: Actor) -> None:
+def test_concurrent_debits_cannot_overspend(
+    session: Session, session_factory: sessionmaker[Session], owner: Actor
+) -> None:
     src = new_wallet(session, owner, funded=1_000)
     dst = new_wallet(session, owner)
     results = run_concurrently(
-        session_factory, 40,
-        lambda s, i: operations.transfer(s, owner, source_wallet_id=src, destination_wallet_id=dst,
-                                         amount=100, currency="USD"),
+        session_factory,
+        40,
+        lambda s, i: operations.transfer(
+            s, owner, source_wallet_id=src, destination_wallet_id=dst, amount=100, currency="USD"
+        ),
     )
     assert not [r for r in results if isinstance(r, Exception)], results
     outcomes = Counter(r.outcome for r in results)
@@ -72,8 +74,12 @@ def test_concurrent_holds_and_transfers_respect_available(
 
     def op(s: Session, i: int) -> OperationResult:
         if i % 2:
-            return operations.create_hold(s, owner, wallet_id=src, destination_wallet_id=dst, amount=150, currency="USD")
-        return operations.transfer(s, owner, source_wallet_id=src, destination_wallet_id=dst, amount=150, currency="USD")
+            return operations.create_hold(
+                s, owner, wallet_id=src, destination_wallet_id=dst, amount=150, currency="USD"
+            )
+        return operations.transfer(
+            s, owner, source_wallet_id=src, destination_wallet_id=dst, amount=150, currency="USD"
+        )
 
     results = run_concurrently(session_factory, 30, op)
     assert not [r for r in results if isinstance(r, Exception)]
@@ -89,25 +95,39 @@ def test_same_idempotency_key_concurrently_executes_once(
     src = new_wallet(session, owner, funded=1_000)
     dst = new_wallet(session, owner)
     results = run_concurrently(
-        session_factory, 25,
-        lambda s, i: operations.transfer(s, owner, source_wallet_id=src, destination_wallet_id=dst, amount=300,
-                                         currency="USD", idempotency_key="order-7781"),
+        session_factory,
+        25,
+        lambda s, i: operations.transfer(
+            s,
+            owner,
+            source_wallet_id=src,
+            destination_wallet_id=dst,
+            amount=300,
+            currency="USD",
+            idempotency_key="order-7781",
+        ),
     )
     assert not [r for r in results if isinstance(r, Exception)], results
     assert len({r.resource_id for r in results}) == 1
     assert sum(not r.replayed for r in results) == 1
     assert balance(session, dst)["posted"] == 300
-    count = session.execute(select(func.count()).select_from(Transaction).where(Transaction.type == "transfer")).scalar()
+    count = session.execute(
+        select(func.count()).select_from(Transaction).where(Transaction.type == "transfer")
+    ).scalar()
     assert count == 1
 
 
-def test_opposite_transfers_do_not_deadlock(session: Session, session_factory: sessionmaker[Session], owner: Actor) -> None:
+def test_opposite_transfers_do_not_deadlock(
+    session: Session, session_factory: sessionmaker[Session], owner: Actor
+) -> None:
     a = new_wallet(session, owner, funded=10_000)
     b = new_wallet(session, owner, funded=10_000)
 
     def op(s: Session, i: int) -> OperationResult:
         src, dst = (a, b) if i % 2 else (b, a)
-        return operations.transfer(s, owner, source_wallet_id=src, destination_wallet_id=dst, amount=10 + i, currency="USD")
+        return operations.transfer(
+            s, owner, source_wallet_id=src, destination_wallet_id=dst, amount=10 + i, currency="USD"
+        )
 
     results = run_concurrently(session_factory, 40, op)
     errors = [r for r in results if isinstance(r, Exception)]
@@ -122,8 +142,9 @@ def test_capture_and_release_race_has_one_winner(
     src = new_wallet(session, owner, funded=1_000)
     dst = new_wallet(session, owner)
     hold_ids = [
-        operations.create_hold(session, owner, wallet_id=src, destination_wallet_id=dst, amount=100,
-                               currency="USD").resource_id
+        operations.create_hold(
+            session, owner, wallet_id=src, destination_wallet_id=dst, amount=100, currency="USD"
+        ).resource_id
         for _ in range(5)
     ]
 
@@ -136,7 +157,9 @@ def test_capture_and_release_race_has_one_winner(
     results = run_concurrently(session_factory, 20, op)
     assert not [r for r in results if isinstance(r, Exception)]
     assert sum(r.succeeded for r in results) == 5  # exactly one winner per hold
-    captured = session.execute(select(func.count()).select_from(Hold).where(Hold.status == HoldStatus.CAPTURED)).scalar()
+    captured = session.execute(
+        select(func.count()).select_from(Hold).where(Hold.status == HoldStatus.CAPTURED)
+    ).scalar()
     session.commit()
     assert balance(session, dst)["posted"] == 100 * captured
     assert reconciliation.run_reconciliation(session, owner).status == "passed"
@@ -148,13 +171,25 @@ def test_parallel_expiry_workers_never_double_release(
     src = new_wallet(session, owner, funded=10_000)
     dst = new_wallet(session, owner)
     for _ in range(30):
-        operations.create_hold(session, owner, wallet_id=src, destination_wallet_id=dst, amount=100, currency="USD",
-                               expires_in_seconds=1)
+        operations.create_hold(
+            session,
+            owner,
+            wallet_id=src,
+            destination_wallet_id=dst,
+            amount=100,
+            currency="USD",
+            expires_in_seconds=1,
+        )
     later = now() + timedelta(minutes=1)
     results = run_concurrently(session_factory, 6, lambda s, i: operations.expire_holds(s, as_of=later))
     assert not [r for r in results if isinstance(r, Exception)], results
     assert sum(results) == 30
-    assert balance(session, src) == {"posted": 10_000, "pending_outgoing": 0, "pending_incoming": 0, "available": 10_000}
+    assert balance(session, src) == {
+        "posted": 10_000,
+        "pending_outgoing": 0,
+        "pending_incoming": 0,
+        "available": 10_000,
+    }
     assert reconciliation.run_reconciliation(session, owner).status == "passed"
 
 
@@ -163,9 +198,12 @@ def test_reversal_race_cannot_double_refund(
 ) -> None:
     a = new_wallet(session, owner, funded=1_000)
     b = new_wallet(session, owner)
-    t = operations.transfer(session, owner, source_wallet_id=a, destination_wallet_id=b, amount=500, currency="USD")
+    t = operations.transfer(
+        session, owner, source_wallet_id=a, destination_wallet_id=b, amount=500, currency="USD"
+    )
     results = run_concurrently(
-        session_factory, 12,
+        session_factory,
+        12,
         lambda s, i: operations.reverse_transaction(s, owner, transaction_id=t.resource_id, amount=100),
     )
     assert not [r for r in results if isinstance(r, Exception)]
@@ -196,17 +234,32 @@ def test_stress_random_operations_preserve_invariants(
             choice = rng.random()
             try:
                 if choice < 0.45:
-                    r = operations.transfer(s, owner, source_wallet_id=x, destination_wallet_id=y, amount=amount,
-                                            currency="USD", idempotency_key=f"t-{i}-{n}")
+                    r = operations.transfer(
+                        s,
+                        owner,
+                        source_wallet_id=x,
+                        destination_wallet_id=y,
+                        amount=amount,
+                        currency="USD",
+                        idempotency_key=f"t-{i}-{n}",
+                    )
                     if r.succeeded:
                         with lock:
                             posted_tx.append(r.resource_id)  # type: ignore[arg-type]
                     # Retry of the same request (as a client would after a timeout): never doubles.
-                    assert operations.transfer(s, owner, source_wallet_id=x, destination_wallet_id=y, amount=amount,
-                                               currency="USD", idempotency_key=f"t-{i}-{n}").replayed
+                    assert operations.transfer(
+                        s,
+                        owner,
+                        source_wallet_id=x,
+                        destination_wallet_id=y,
+                        amount=amount,
+                        currency="USD",
+                        idempotency_key=f"t-{i}-{n}",
+                    ).replayed
                 elif choice < 0.6:
-                    r = operations.create_hold(s, owner, wallet_id=x, destination_wallet_id=y, amount=amount,
-                                               currency="USD")
+                    r = operations.create_hold(
+                        s, owner, wallet_id=x, destination_wallet_id=y, amount=amount, currency="USD"
+                    )
                     if r.succeeded:
                         with lock:
                             hold_pool.append(r.resource_id)  # type: ignore[arg-type]
@@ -215,14 +268,19 @@ def test_stress_random_operations_preserve_invariants(
                         hid = hold_pool.pop() if hold_pool else None
                     if hid is None:
                         continue
-                    r = (operations.capture_hold(s, owner, hold_id=hid, amount=rng.randint(1, 50))
-                         if rng.random() < 0.6 else operations.release_hold(s, owner, hold_id=hid))
+                    r = (
+                        operations.capture_hold(s, owner, hold_id=hid, amount=rng.randint(1, 50))
+                        if rng.random() < 0.6
+                        else operations.release_hold(s, owner, hold_id=hid)
+                    )
                 elif choice < 0.85:
                     with lock:
                         tid = rng.choice(posted_tx) if posted_tx else None
                     if tid is None:
                         continue
-                    r = operations.reverse_transaction(s, owner, transaction_id=tid, amount=rng.randint(1, 50))
+                    r = operations.reverse_transaction(
+                        s, owner, transaction_id=tid, amount=rng.randint(1, 50)
+                    )
                 elif choice < 0.93:
                     r = operations.deposit(s, owner, wallet_id=x, amount=amount, currency="USD")
                     if r.succeeded:
@@ -247,8 +305,10 @@ def test_stress_random_operations_preserve_invariants(
     expected = deposited + external["in"] - external["out"]
     assert total_wallet_liabilities(session, owner.org_id, "USD") == expected
     negatives = session.execute(
-        text("SELECT count(*) FROM accounts WHERE NOT allow_negative AND "
-             "posted_credits - posted_debits - pending_debits < 0 AND normal_balance = 'credit'")
+        text(
+            "SELECT count(*) FROM accounts WHERE NOT allow_negative AND "
+            "posted_credits - posted_debits - pending_debits < 0 AND normal_balance = 'credit'"
+        )
     ).scalar()
     session.commit()
     assert negatives == 0

@@ -127,7 +127,9 @@ class TestPostingRules:
 class TestStateMachines:
     @pytest.mark.parametrize("current", list(TransactionStatus))
     @pytest.mark.parametrize("target", list(TransactionStatus))
-    def test_transaction_transitions_exhaustive(self, current: TransactionStatus, target: TransactionStatus) -> None:
+    def test_transaction_transitions_exhaustive(
+        self, current: TransactionStatus, target: TransactionStatus
+    ) -> None:
         allowed = target in TRANSACTION_TRANSITIONS[current]
         if allowed:
             check_transaction_transition(current, target)

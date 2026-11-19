@@ -15,7 +15,7 @@ from hypothesis import strategies as st
 from hypothesis.stateful import RuleBasedStateMachine, initialize, invariant, precondition, rule
 from sqlalchemy.orm import Session, sessionmaker
 
-from tests.conftest import make_org
+from tests.fixtures import make_org
 from tests.helpers import balance, new_wallet
 from waltrix_core.services import operations, reconciliation
 
@@ -59,8 +59,9 @@ def test_ledger_matches_model(factory: sessionmaker[Session]) -> None:
         @rule(i=st.integers(0, 2), j=st.integers(0, 2), amount=amounts)
         def transfer(self, i: int, j: int, amount: int) -> None:
             a, b = self.w[i], self.w[j]
-            r = operations.transfer(self.s, self.actor, source_wallet_id=a, destination_wallet_id=b, amount=amount,
-                                    currency="USD")
+            r = operations.transfer(
+                self.s, self.actor, source_wallet_id=a, destination_wallet_id=b, amount=amount, currency="USD"
+            )
             expected = i != j and amount <= self.avail(a)
             assert r.succeeded == expected, (r, self.avail(a))
             if expected:
@@ -71,8 +72,9 @@ def test_ledger_matches_model(factory: sessionmaker[Session]) -> None:
         @rule(i=st.integers(0, 2), j=st.integers(0, 2), amount=amounts)
         def hold(self, i: int, j: int, amount: int) -> None:
             a, b = self.w[i], self.w[j]
-            r = operations.create_hold(self.s, self.actor, wallet_id=a, destination_wallet_id=b, amount=amount,
-                                       currency="USD")
+            r = operations.create_hold(
+                self.s, self.actor, wallet_id=a, destination_wallet_id=b, amount=amount, currency="USD"
+            )
             expected = i != j and amount <= self.avail(a)
             assert r.succeeded == expected
             if expected:
@@ -127,7 +129,9 @@ def test_ledger_matches_model(factory: sessionmaker[Session]) -> None:
                 self.s.close()
 
     LedgerMachine.TestCase.settings = settings(
-        max_examples=12, stateful_step_count=20, deadline=None,
+        max_examples=12,
+        stateful_step_count=20,
+        deadline=None,
         suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
     )
     LedgerMachine.TestCase().runTest()
