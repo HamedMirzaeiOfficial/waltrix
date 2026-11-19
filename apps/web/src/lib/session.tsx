@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Me, Membership } from "@waltrix/sdk";
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 
 import { api, getOrganizationId, setOrganizationId } from "./api";
 import { isAuthError } from "./errors";
@@ -32,12 +32,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     staleTime: 60_000,
   });
   const me = meQuery.data ?? null;
-  const orgId = getOrganizationId();
+  // The id lives in api.ts (the SDK reads it on every request) *and* in state here. Reading only the
+  // module variable during render was a bug: choosing an organization changed it without re-rendering
+  // this provider, so RequireOrg saw the old (null) membership and bounced back to /organizations.
+  const [orgId, setOrgId] = useState(getOrganizationId);
   const membership = me?.memberships.find((m) => m.organization.id === orgId) ?? null;
 
   const selectOrganization = useCallback(
     (id: string) => {
       setOrganizationId(id);
+      setOrgId(id);
       qc.removeQueries({ predicate: (q) => q.queryKey[0] !== "me" });
       void qc.invalidateQueries({ queryKey: ["me"] });
     },
@@ -47,6 +51,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     await api.auth.logout().catch(() => undefined);
     setOrganizationId(null);
+    setOrgId(null);
     qc.clear();
     await qc.invalidateQueries({ queryKey: ["me"] });
   }, [qc]);
